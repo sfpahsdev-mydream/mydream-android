@@ -1,0 +1,36 @@
+# Gradle / Android build
+.gradle/
+.kotlin/
+build/
+**/build/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Local machine config
+local.properties
+
+# IDE
+.idea/
+*.iml
+
+# Generated packages
+*.apk
+*.ap_
+*.aab
+
+# Keystores / signing
+*.jks
+*.keystore
+keystore.properties
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Samsung Health SDK binary
+# Add this manually from Samsung's developer site.
+app/libs/*.aar
