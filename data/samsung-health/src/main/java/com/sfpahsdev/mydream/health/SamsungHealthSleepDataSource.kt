@@ -45,7 +45,7 @@ class SamsungHealthSleepDataSource(
         runCatching {
             val store = HealthDataService.getStore(context)
             val sessions = mutableListOf<SleepSession>()
-            generateDailyWindows(from, to).forEach { (windowStart, windowEnd) ->
+            generateMonthlyWindows(from, to).forEach { (windowStart, windowEnd) ->
                 val request = DataTypes.SLEEP.readDataRequestBuilder
                     .setLocalTimeFilter(LocalTimeFilter.of(windowStart, windowEnd))
                     .build()
@@ -66,14 +66,14 @@ class SamsungHealthSleepDataSource(
     private fun sleepReadPermissions(): MutableSet<Permission> =
         mutableSetOf(Permission.of(DataTypes.SLEEP, AccessType.READ))
 
-    private fun generateDailyWindows(
+    private fun generateMonthlyWindows(
         from: LocalDateTime,
         to: LocalDateTime,
     ): Sequence<Pair<LocalDateTime, LocalDateTime>> =
-        generateSequence(from.toLocalDate().atStartOfDay()) { start ->
-            start.plusDays(1).takeIf { it < to }
+        generateSequence(from.toLocalDate().withDayOfMonth(1).atStartOfDay()) { start ->
+            start.plusMonths(1).takeIf { it < to }
         }.map { start ->
-            start to minOf(start.plusDays(1), to)
+            maxOf(start, from) to minOf(start.plusMonths(1), to)
         }
 
     private fun HealthDataPoint.toSleepSessions(): List<SleepSession> {

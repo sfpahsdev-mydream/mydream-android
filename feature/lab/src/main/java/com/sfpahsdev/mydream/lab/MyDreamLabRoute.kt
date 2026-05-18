@@ -29,11 +29,17 @@ import com.sfpahsdev.mydream.export.SleepSessionJsonlExporter
 import com.sfpahsdev.mydream.health.SamsungHealthSleepDataSource
 import com.sfpahsdev.mydream.sleep.SleepDataSourceResult
 import com.sfpahsdev.mydream.sleep.SleepSession
+import com.sfpahsdev.mydream.sleep.SleepStageType
 import java.io.File
+import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.YearMonth
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.launch
+
+private val FullHistoryStartDate: LocalDate = LocalDate.of(2014, 1, 1)
 
 @Composable
 fun MyDreamLabRoute(
@@ -93,25 +99,31 @@ fun MyDreamLabRoute(
         },
         onReadSleep = {
             scope.launch {
+                val lookupStartedAt = System.currentTimeMillis()
                 val to = LocalDateTime.now()
-                val from = LocalDate.now().minusDays(400).atStartOfDay()
+                val from = FullHistoryStartDate.atStartOfDay()
 
                 state = state.copy(
                     isLoading = true,
-                    status = "최근 400일 수면 단계 데이터 조회 중...",
+                    status = "전체 수면 단계 데이터 조회 중...",
                     from = from,
                     to = to,
                 )
                 state = when (val result = sleepDataSource.getSleepSessions(from, to)) {
-                    is SleepDataSourceResult.Success -> state.copy(
-                        isLoading = false,
-                        status = "${result.value.size}개 수면 세션을 가져왔습니다.",
-                        sessions = result.value,
-                        exportFile = writeExportFile(result.value),
-                    )
+                    is SleepDataSourceResult.Success -> {
+                        val lookupDurationMs = System.currentTimeMillis() - lookupStartedAt
+                        state.copy(
+                            isLoading = false,
+                            status = "${result.value.size}개 수면 세션을 가져왔습니다.",
+                            sessions = result.value,
+                            exportFile = writeExportFile(result.value),
+                            lookupDurationMs = lookupDurationMs,
+                        )
+                    }
                     is SleepDataSourceResult.Failure -> state.copy(
                         isLoading = false,
                         status = result.message,
+                        lookupDurationMs = System.currentTimeMillis() - lookupStartedAt,
                     )
                 }
             }
@@ -165,9 +177,10 @@ private fun CollectorScreen(
             Text("JSONL 공유")
         }
         StatusCard(state)
-        state.sessions.takeLast(5).forEach { session ->
-            SessionCard(session)
-        }
+        val stats = remember(state.sessions) { state.sessions.toCollectorStats() }
+        DataQualityCard(stats)
+        MonthlyCoverageCard(stats)
+        ProblemSessionsCard(stats)
     }
 }
 
@@ -188,6 +201,9 @@ private fun StatusCard(state: CollectorUiState) {
             state.to?.let { to ->
                 Text("조회 종료: ${to.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)}")
             }
+            state.lookupDurationMs?.let { durationMs ->
+                Text("탐색 시간: ${durationMs.formatDurationMs()}")
+            }
             Text("세션 수: ${state.sessions.size}")
             Text("단계 수: ${state.sessions.sumOf { it.stages.size }}")
             state.exportFile?.let { file ->
@@ -198,16 +214,62 @@ private fun StatusCard(state: CollectorUiState) {
 }
 
 @Composable
-private fun SessionCard(session: SleepSession) {
+private fun DataQualityCard(stats: CollectorStats) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text(text = session.id, style = MaterialTheme.typography.titleMedium)
-            Text("시작: ${session.startTime}")
-            Text("종료: ${session.endTime}")
-            Text("수면 단계: ${session.stages.size}")
+            Text("데이터 품질 요약", style = MaterialTheme.typography.titleMedium)
+            Text("첫 기록: ${stats.firstSessionDate ?: "-"}")
+            Text("마지막 기록: ${stats.lastSessionDate ?: "-"}")
+            Text("총 수면 시간: ${stats.totalSleepMinutes / 60}시간 ${stats.totalSleepMinutes % 60}분")
+            Text("평균 수면 시간: ${stats.averageSleepMinutes / 60}시간 ${stats.averageSleepMinutes % 60}분")
+            Text("학습 가능 예상 세션: ${stats.trainingEligibleSessions}")
+            Text("3시간 미만 세션: ${stats.tooShortSessions}")
+            Text("12시간 초과 세션: ${stats.tooLongSessions}")
+            Text("stage 없는 세션: ${stats.noStageSessions}")
+            Text("Deep 포함 세션: ${stats.deepStageSessions}")
+            Text("Unknown stage 수: ${stats.unknownStageCount}")
+            stats.stageSummaries.forEach { summary ->
+                Text("${summary.type}: ${summary.count}개 / ${summary.minutes}분")
+            }
+        }
+    }
+}
+
+@Composable
+private fun MonthlyCoverageCard(stats: CollectorStats) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text("월별 커버리지", style = MaterialTheme.typography.titleMedium)
+            Text("기록 있는 달: ${stats.monthsWithSessions}")
+            Text("기록 없는 달: ${stats.emptyMonthsBetweenFirstAndLast}")
+            stats.recentMonthSummaries.forEach { month ->
+                Text("${month.month}: ${month.sessions}세션 / stage ${month.stages}개")
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProblemSessionsCard(stats: CollectorStats) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text("문제 세션 미리보기", style = MaterialTheme.typography.titleMedium)
+            if (stats.problemSessions.isEmpty()) {
+                Text("표시할 문제 세션이 없습니다.")
+            } else {
+                stats.problemSessions.forEach { problem ->
+                    Text("${problem.startDate} / ${problem.reason} / ${problem.id}")
+                }
+            }
         }
     }
 }
@@ -230,4 +292,153 @@ private data class CollectorUiState(
     val to: LocalDateTime? = null,
     val sessions: List<SleepSession> = emptyList(),
     val exportFile: File? = null,
+    val lookupDurationMs: Long? = null,
 )
+
+private data class CollectorStats(
+    val firstSessionDate: String?,
+    val lastSessionDate: String?,
+    val totalSleepMinutes: Long,
+    val averageSleepMinutes: Long,
+    val trainingEligibleSessions: Int,
+    val tooShortSessions: Int,
+    val tooLongSessions: Int,
+    val noStageSessions: Int,
+    val deepStageSessions: Int,
+    val unknownStageCount: Int,
+    val stageSummaries: List<StageSummary>,
+    val monthsWithSessions: Int,
+    val emptyMonthsBetweenFirstAndLast: Int,
+    val recentMonthSummaries: List<MonthSummary>,
+    val problemSessions: List<ProblemSession>,
+)
+
+private data class StageSummary(
+    val type: SleepStageType,
+    val count: Int,
+    val minutes: Long,
+)
+
+private data class MonthSummary(
+    val month: YearMonth,
+    val sessions: Int,
+    val stages: Int,
+)
+
+private data class ProblemSession(
+    val id: String,
+    val startDate: String,
+    val reason: String,
+)
+
+private fun List<SleepSession>.toCollectorStats(): CollectorStats {
+    if (isEmpty()) {
+        return CollectorStats(
+            firstSessionDate = null,
+            lastSessionDate = null,
+            totalSleepMinutes = 0,
+            averageSleepMinutes = 0,
+            trainingEligibleSessions = 0,
+            tooShortSessions = 0,
+            tooLongSessions = 0,
+            noStageSessions = 0,
+            deepStageSessions = 0,
+            unknownStageCount = 0,
+            stageSummaries = emptyList(),
+            monthsWithSessions = 0,
+            emptyMonthsBetweenFirstAndLast = 0,
+            recentMonthSummaries = emptyList(),
+            problemSessions = emptyList(),
+        )
+    }
+
+    val zone = ZoneId.systemDefault()
+    val sortedSessions = sortedBy { it.startTime }
+    val durations = associateWith { it.durationMinutes() }
+    val months = sortedSessions.groupBy { YearMonth.from(it.startTime.atZone(zone)) }
+    val firstMonth = months.keys.minOrNull()
+    val lastMonth = months.keys.maxOrNull()
+    val totalMonths = if (firstMonth != null && lastMonth != null) {
+        generateSequence(firstMonth) { month ->
+            month.plusMonths(1).takeIf { it <= lastMonth }
+        }.count()
+    } else {
+        0
+    }
+
+    val stageSummaries = SleepStageType.entries.map { type ->
+        val stages = sortedSessions.flatMap { it.stages }.filter { it.type == type }
+        StageSummary(
+            type = type,
+            count = stages.size,
+            minutes = stages.sumOf { it.durationMinutes() },
+        )
+    }
+
+    return CollectorStats(
+        firstSessionDate = sortedSessions.first().startTime.atZone(zone).toLocalDate().toString(),
+        lastSessionDate = sortedSessions.last().startTime.atZone(zone).toLocalDate().toString(),
+        totalSleepMinutes = durations.values.sum(),
+        averageSleepMinutes = durations.values.average().toLong(),
+        trainingEligibleSessions = sortedSessions.count { session ->
+            durations.getValue(session) in 180..720 && session.stages.isNotEmpty()
+        },
+        tooShortSessions = sortedSessions.count { durations.getValue(it) < 180 },
+        tooLongSessions = sortedSessions.count { durations.getValue(it) > 720 },
+        noStageSessions = sortedSessions.count { it.stages.isEmpty() },
+        deepStageSessions = sortedSessions.count { session ->
+            session.stages.any { it.type == SleepStageType.Deep }
+        },
+        unknownStageCount = sortedSessions.sumOf { session ->
+            session.stages.count { it.type == SleepStageType.Unknown }
+        },
+        stageSummaries = stageSummaries,
+        monthsWithSessions = months.size,
+        emptyMonthsBetweenFirstAndLast = (totalMonths - months.size).coerceAtLeast(0),
+        recentMonthSummaries = months.entries
+            .sortedByDescending { it.key }
+            .take(12)
+            .map { (month, sessions) ->
+                MonthSummary(
+                    month = month,
+                    sessions = sessions.size,
+                    stages = sessions.sumOf { it.stages.size },
+                )
+            },
+        problemSessions = sortedSessions
+            .mapNotNull { session -> session.toProblemSession(zone, durations.getValue(session)) }
+            .take(10),
+    )
+}
+
+private fun SleepSession.toProblemSession(zone: ZoneId, durationMinutes: Long): ProblemSession? {
+    val reason = when {
+        stages.isEmpty() -> "stage 없음"
+        durationMinutes < 180 -> "3시간 미만"
+        durationMinutes > 720 -> "12시간 초과"
+        stages.any { it.type == SleepStageType.Unknown } -> "Unknown stage 포함"
+        else -> return null
+    }
+    return ProblemSession(
+        id = id,
+        startDate = startTime.atZone(zone).toLocalDate().toString(),
+        reason = reason,
+    )
+}
+
+private fun SleepSession.durationMinutes(): Long =
+    maxOf(0, Duration.between(startTime, endTime).toMinutes())
+
+private fun com.sfpahsdev.mydream.sleep.SleepStage.durationMinutes(): Long =
+    maxOf(0, Duration.between(startTime, endTime).toMinutes())
+
+private fun Long.formatDurationMs(): String {
+    val totalSeconds = this / 1_000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return if (minutes > 0) {
+        "${minutes}분 ${seconds}초"
+    } else {
+        "${seconds}초"
+    }
+}
