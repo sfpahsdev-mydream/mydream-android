@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +28,16 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.sfpahsdev.mydream.export.SleepSessionJsonlExporter
 import com.sfpahsdev.mydream.health.SamsungHealthSleepDataSource
+import com.sfpahsdev.mydream.inference.AndroidInferenceValidationLog
+import com.sfpahsdev.mydream.inference.AndroidSequenceModelValidator
+import com.sfpahsdev.mydream.inference.DecisionPolicyEvaluator
+import com.sfpahsdev.mydream.inference.DecisionPolicyInput
+import com.sfpahsdev.mydream.inference.DecisionPolicyOption
+import com.sfpahsdev.mydream.inference.DecisionPolicyResult
+import com.sfpahsdev.mydream.inference.MultiSampleDecisionPolicyComparisonLog
+import com.sfpahsdev.mydream.inference.MultiSampleParityValidationLog
+import com.sfpahsdev.mydream.inference.MultiSampleTabularValidationLog
+import com.sfpahsdev.mydream.inference.TabularInferenceValidationLog
 import com.sfpahsdev.mydream.sleep.SleepDataSourceResult
 import com.sfpahsdev.mydream.sleep.SleepSession
 import com.sfpahsdev.mydream.sleep.SleepStageType
@@ -54,6 +65,9 @@ fun MyDreamLabRoute(
         )
     }
     val exporter = remember { SleepSessionJsonlExporter() }
+    val sequenceModelValidator = remember(activity) {
+        AndroidSequenceModelValidator(activity.applicationContext)
+    }
     var state by remember { mutableStateOf(CollectorUiState()) }
 
     fun writeExportFile(sessions: List<SleepSession>): File {
@@ -129,6 +143,209 @@ fun MyDreamLabRoute(
             }
         },
         onShareExport = ::shareExport,
+        onRunTfliteValidation = {
+            scope.launch {
+                state = state.copy(
+                    isTfliteValidationRunning = true,
+                    tfliteValidationStatus = "Running fixed parity validation...",
+                )
+                state = try {
+                    val log = sequenceModelValidator.runFixedParityValidation()
+                    state.copy(
+                        isTfliteValidationRunning = false,
+                        tfliteValidationStatus = "Fixed parity validation finished.",
+                        tfliteValidationLog = log,
+                        multiSampleParityLog = null,
+                    )
+                } catch (error: Throwable) {
+                    state.copy(
+                        isTfliteValidationRunning = false,
+                        tfliteValidationStatus = "TFLite validation failed: ${error.message}",
+                        tfliteValidationLog = null,
+                    )
+                }
+            }
+        },
+        onRunFloat16TfliteValidation = {
+            scope.launch {
+                state = state.copy(
+                    isTfliteValidationRunning = true,
+                    tfliteValidationStatus = "Running float16 parity validation...",
+                )
+                state = try {
+                    val log = sequenceModelValidator.runFixedFloat16ParityValidation()
+                    state.copy(
+                        isTfliteValidationRunning = false,
+                        tfliteValidationStatus = "Float16 parity validation finished.",
+                        tfliteValidationLog = log,
+                        multiSampleParityLog = null,
+                    )
+                } catch (error: Throwable) {
+                    state.copy(
+                        isTfliteValidationRunning = false,
+                        tfliteValidationStatus = "Float16 validation failed: ${error.message}",
+                        tfliteValidationLog = null,
+                    )
+                }
+            }
+        },
+        onRunMultiFloat32TfliteValidation = {
+            scope.launch {
+                state = state.copy(
+                    isTfliteValidationRunning = true,
+                    tfliteValidationStatus = "Running multi-sample float32 parity validation...",
+                )
+                state = try {
+                    val log = sequenceModelValidator.runMultiSampleFloat32ParityValidation()
+                    state.copy(
+                        isTfliteValidationRunning = false,
+                        tfliteValidationStatus = "Multi-sample float32 validation finished.",
+                        tfliteValidationLog = null,
+                        multiSampleParityLog = log,
+                    )
+                } catch (error: Throwable) {
+                    state.copy(
+                        isTfliteValidationRunning = false,
+                        tfliteValidationStatus = "Multi-sample float32 validation failed: ${error.message}",
+                        multiSampleParityLog = null,
+                    )
+                }
+            }
+        },
+        onRunMultiFloat16TfliteValidation = {
+            scope.launch {
+                state = state.copy(
+                    isTfliteValidationRunning = true,
+                    tfliteValidationStatus = "Running multi-sample float16 parity validation...",
+                )
+                state = try {
+                    val log = sequenceModelValidator.runMultiSampleFloat16ParityValidation()
+                    state.copy(
+                        isTfliteValidationRunning = false,
+                        tfliteValidationStatus = "Multi-sample float16 validation finished.",
+                        tfliteValidationLog = null,
+                        multiSampleParityLog = log,
+                    )
+                } catch (error: Throwable) {
+                    state.copy(
+                        isTfliteValidationRunning = false,
+                        tfliteValidationStatus = "Multi-sample float16 validation failed: ${error.message}",
+                        multiSampleParityLog = null,
+                    )
+                }
+            }
+        },
+        onRunTabularValidation = {
+            scope.launch {
+                state = state.copy(
+                    isTfliteValidationRunning = true,
+                    tfliteValidationStatus = "Running tabular parity validation...",
+                )
+                state = try {
+                    val log = sequenceModelValidator.runFixedTabularParityValidation()
+                    state.copy(
+                        isTfliteValidationRunning = false,
+                        tfliteValidationStatus = "Tabular parity validation finished.",
+                        tabularValidationLog = log,
+                        multiSampleTabularValidationLog = null,
+                    )
+                } catch (error: Throwable) {
+                    state.copy(
+                        isTfliteValidationRunning = false,
+                        tfliteValidationStatus = "Tabular validation failed: ${error.message}",
+                        tabularValidationLog = null,
+                    )
+                }
+            }
+        },
+        onRunMultiTabularValidation = {
+            scope.launch {
+                state = state.copy(
+                    isTfliteValidationRunning = true,
+                    tfliteValidationStatus = "Running multi-sample tabular validation...",
+                )
+                state = try {
+                    val log = sequenceModelValidator.runMultiSampleTabularParityValidation()
+                    state.copy(
+                        isTfliteValidationRunning = false,
+                        tfliteValidationStatus = "Multi-sample tabular validation finished.",
+                        multiSampleTabularValidationLog = log,
+                        tabularValidationLog = null,
+                    )
+                } catch (error: Throwable) {
+                    state.copy(
+                        isTfliteValidationRunning = false,
+                        tfliteValidationStatus = "Multi-sample tabular validation failed: ${error.message}",
+                        multiSampleTabularValidationLog = null,
+                    )
+                }
+            }
+        },
+        onToggleDecisionOption = { option ->
+            state = state.copy(
+                selectedDecisionOptions = if (option in state.selectedDecisionOptions) {
+                    state.selectedDecisionOptions - option
+                } else {
+                    state.selectedDecisionOptions + option
+                },
+            )
+        },
+        onCompareSelectedDecisionOptions = {
+            scope.launch {
+                state = state.copy(
+                    isTfliteValidationRunning = true,
+                    tfliteValidationStatus = "Comparing selected decision options...",
+                )
+                state = try {
+                    val log = state.tfliteValidationLog
+                        ?: sequenceModelValidator.runFixedParityValidation()
+                    val tabularLog = state.tabularValidationLog
+                        ?: sequenceModelValidator.runFixedTabularParityValidation()
+                    val input = log.toDecisionPolicyInput(tabularLog.tabularScoreAndroid)
+                    state.copy(
+                        isTfliteValidationRunning = false,
+                        tfliteValidationStatus = "Decision option comparison finished.",
+                        tfliteValidationLog = log,
+                        tabularValidationLog = tabularLog,
+                        multiSampleParityLog = null,
+                        decisionPolicyResults = DecisionPolicyEvaluator.evaluateAll(
+                            options = state.selectedDecisionOptions,
+                            input = input,
+                        ),
+                    )
+                } catch (error: Throwable) {
+                    state.copy(
+                        isTfliteValidationRunning = false,
+                        tfliteValidationStatus = "Decision option comparison failed: ${error.message}",
+                        decisionPolicyResults = emptyList(),
+                    )
+                }
+            }
+        },
+        onCompareMultiSampleDecisionOptions = {
+            scope.launch {
+                state = state.copy(
+                    isTfliteValidationRunning = true,
+                    tfliteValidationStatus = "Comparing multi-sample decision options...",
+                )
+                state = try {
+                    val log = sequenceModelValidator.runMultiSampleDecisionPolicyComparison(
+                        options = state.selectedDecisionOptions,
+                    )
+                    state.copy(
+                        isTfliteValidationRunning = false,
+                        tfliteValidationStatus = "Multi-sample decision comparison finished.",
+                        multiSampleDecisionPolicyLog = log,
+                    )
+                } catch (error: Throwable) {
+                    state.copy(
+                        isTfliteValidationRunning = false,
+                        tfliteValidationStatus = "Multi-sample decision comparison failed: ${error.message}",
+                        multiSampleDecisionPolicyLog = null,
+                    )
+                }
+            }
+        },
         modifier = modifier,
     )
 }
@@ -139,6 +356,15 @@ private fun CollectorScreen(
     onRequestPermission: () -> Unit,
     onReadSleep: () -> Unit,
     onShareExport: () -> Unit,
+    onRunTfliteValidation: () -> Unit,
+    onRunFloat16TfliteValidation: () -> Unit,
+    onRunMultiFloat32TfliteValidation: () -> Unit,
+    onRunMultiFloat16TfliteValidation: () -> Unit,
+    onRunTabularValidation: () -> Unit,
+    onRunMultiTabularValidation: () -> Unit,
+    onToggleDecisionOption: (DecisionPolicyOption) -> Unit,
+    onCompareSelectedDecisionOptions: () -> Unit,
+    onCompareMultiSampleDecisionOptions: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -176,7 +402,50 @@ private fun CollectorScreen(
         ) {
             Text("JSONL 공유")
         }
+        Button(
+            onClick = onRunTfliteValidation,
+            enabled = !state.isLoading && !state.isTfliteValidationRunning,
+        ) {
+            Text("Run float32 validation")
+        }
+        Button(
+            onClick = onRunFloat16TfliteValidation,
+            enabled = !state.isLoading && !state.isTfliteValidationRunning,
+        ) {
+            Text("Run float16 validation")
+        }
+        Button(
+            onClick = onRunMultiFloat32TfliteValidation,
+            enabled = !state.isLoading && !state.isTfliteValidationRunning,
+        ) {
+            Text("Run multi float32")
+        }
+        Button(
+            onClick = onRunMultiFloat16TfliteValidation,
+            enabled = !state.isLoading && !state.isTfliteValidationRunning,
+        ) {
+            Text("Run multi float16")
+        }
+        Button(
+            onClick = onRunTabularValidation,
+            enabled = !state.isLoading && !state.isTfliteValidationRunning,
+        ) {
+            Text("Run tabular validation")
+        }
+        Button(
+            onClick = onRunMultiTabularValidation,
+            enabled = !state.isLoading && !state.isTfliteValidationRunning,
+        ) {
+            Text("Run multi tabular")
+        }
         StatusCard(state)
+        TfliteValidationCard(state)
+        DecisionPolicyComparisonCard(
+            state = state,
+            onToggleDecisionOption = onToggleDecisionOption,
+            onCompareSelectedDecisionOptions = onCompareSelectedDecisionOptions,
+            onCompareMultiSampleDecisionOptions = onCompareMultiSampleDecisionOptions,
+        )
         val stats = remember(state.sessions) { state.sessions.toCollectorStats() }
         DataQualityCard(stats)
         MonthlyCoverageCard(stats)
@@ -208,6 +477,158 @@ private fun StatusCard(state: CollectorUiState) {
             Text("단계 수: ${state.sessions.sumOf { it.stages.size }}")
             state.exportFile?.let { file ->
                 Text("Export: ${file.name}")
+            }
+        }
+    }
+}
+
+@Composable
+private fun TfliteValidationCard(state: CollectorUiState) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text("TFLite validation", style = MaterialTheme.typography.titleMedium)
+            Text(state.tfliteValidationStatus)
+            state.tfliteValidationLog?.let { log ->
+                Text("Model: ${log.modelVersion}")
+                Text("File: ${log.modelFile}")
+                Text("Session: ${log.sessionId}")
+                Text("Candidate: ${log.candidateTime}")
+                Text("Deadline: ${log.deadlineTime}")
+                Text("GRU score: ${"%.8f".format(log.gruScoreAndroid)}")
+                log.gruScoreServerExpected?.let { expected ->
+                    Text("Expected: ${"%.8f".format(expected)}")
+                }
+                log.tabularScoreServerExpected?.let { expected ->
+                    Text("Expected tabular: ${"%.8f".format(expected)}")
+                }
+                Text("Threshold: ${log.threshold}")
+                Text("Stage input: ${log.stageSequence60m.size} values")
+                Text("Context input: raw ${log.contextRaw22.size}, scaled ${log.contextScaled22.size}")
+                log.absDiff?.let { diff ->
+                    Text("Server diff: ${"%.8f".format(diff)}")
+                    Text("Result: ${if (diff <= 0.0001f) "PASS" else "CHECK"}")
+                }
+            }
+            state.multiSampleParityLog?.let { log ->
+                Text("Model: ${log.modelVersion}")
+                Text("File: ${log.modelFile}")
+                Text("Samples: ${log.sampleCount}")
+                Text("Mean diff: ${"%.8f".format(log.meanAbsDiff)}")
+                Text("Max diff: ${"%.8f".format(log.maxAbsDiff)}")
+                Text("Threshold flips: ${log.thresholdFlipCount}")
+                Text("Threshold: ${log.threshold}")
+                Text(
+                    "Result: ${
+                        if (
+                            log.meanAbsDiff <= 0.0001f &&
+                            log.maxAbsDiff <= 0.001f &&
+                            log.thresholdFlipCount == 0
+                        ) {
+                            "PASS"
+                        } else {
+                            "CHECK"
+                        }
+                    }",
+                )
+            }
+            state.tabularValidationLog?.let { log ->
+                Text("Tabular model: ${log.modelVersion}")
+                Text("Tabular file: ${log.modelFile}")
+                Text("Tabular score: ${"%.8f".format(log.tabularScoreAndroid)}")
+                log.tabularScoreServerExpected?.let { expected ->
+                    Text("Expected tabular: ${"%.8f".format(expected)}")
+                }
+                log.absDiff?.let { diff ->
+                    Text("Tabular diff: ${"%.8f".format(diff)}")
+                    Text("Tabular result: ${if (diff <= 0.0001f) "PASS" else "CHECK"}")
+                }
+                Text("Tabular input: raw ${log.rawFeatures28.size}, scaled ${log.scaledFeatures28.size}")
+            }
+            state.multiSampleTabularValidationLog?.let { log ->
+                Text("Tabular model: ${log.modelVersion}")
+                Text("Tabular file: ${log.modelFile}")
+                Text("Tabular samples: ${log.sampleCount}")
+                Text("Tabular mean diff: ${"%.8f".format(log.meanAbsDiff)}")
+                Text("Tabular max diff: ${"%.8f".format(log.maxAbsDiff)}")
+                Text("Tabular threshold flips: ${log.thresholdFlipCount}")
+                Text(
+                    "Tabular result: ${
+                        if (
+                            log.meanAbsDiff <= 0.0001f &&
+                            log.maxAbsDiff <= 0.001f &&
+                            log.thresholdFlipCount == 0
+                        ) {
+                            "PASS"
+                        } else {
+                            "CHECK"
+                        }
+                    }",
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DecisionPolicyComparisonCard(
+    state: CollectorUiState,
+    onToggleDecisionOption: (DecisionPolicyOption) -> Unit,
+    onCompareSelectedDecisionOptions: () -> Unit,
+    onCompareMultiSampleDecisionOptions: () -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("Decision options", style = MaterialTheme.typography.titleMedium)
+            DecisionPolicyOption.entries.forEach { option ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Checkbox(
+                        checked = option in state.selectedDecisionOptions,
+                        onCheckedChange = { onToggleDecisionOption(option) },
+                    )
+                    Text(option.label)
+                }
+            }
+            Button(
+                onClick = onCompareSelectedDecisionOptions,
+                enabled = state.selectedDecisionOptions.isNotEmpty() && !state.isTfliteValidationRunning,
+            ) {
+                Text("Compare selected options")
+            }
+            Button(
+                onClick = onCompareMultiSampleDecisionOptions,
+                enabled = state.selectedDecisionOptions.isNotEmpty() && !state.isTfliteValidationRunning,
+            ) {
+                Text("Compare multi-sample options")
+            }
+            state.decisionPolicyResults.forEach { result ->
+                Text(result.option.label, style = MaterialTheme.typography.titleSmall)
+                Text("Score: ${result.score?.let { "%.8f".format(it) } ?: "NOT_AVAILABLE"}")
+                Text("Decision: ${result.decision}")
+                Text("Reason: ${result.reason}")
+            }
+            state.multiSampleDecisionPolicyLog?.let { log ->
+                Text("Multi-sample summary", style = MaterialTheme.typography.titleSmall)
+                Text("Samples: ${log.sampleCount}")
+                Text("Threshold: ${log.threshold}")
+                log.summaries.forEach { summary ->
+                    Text(summary.option.label, style = MaterialTheme.typography.titleSmall)
+                    Text("Mean score: ${summary.meanScore?.let { "%.8f".format(it) } ?: "NOT_AVAILABLE"}")
+                    Text("Available scores: ${summary.availableScoreCount}/${log.sampleCount}")
+                    Text("SMART_WAKE: ${summary.smartWakeCount}")
+                    Text("WAIT: ${summary.waitCount}")
+                    Text("SKIP_TOO_EARLY: ${summary.skipTooEarlyCount}")
+                    Text("SKIP_UNKNOWN_TOO_HIGH: ${summary.skipUnknownTooHighCount}")
+                    Text("NOT_AVAILABLE: ${summary.notAvailableCount}")
+                }
             }
         }
     }
@@ -282,6 +703,15 @@ private fun CollectorScreenPreview() {
         onRequestPermission = {},
         onReadSleep = {},
         onShareExport = {},
+        onRunTfliteValidation = {},
+        onRunFloat16TfliteValidation = {},
+        onRunMultiFloat32TfliteValidation = {},
+        onRunMultiFloat16TfliteValidation = {},
+        onRunTabularValidation = {},
+        onRunMultiTabularValidation = {},
+        onToggleDecisionOption = {},
+        onCompareSelectedDecisionOptions = {},
+        onCompareMultiSampleDecisionOptions = {},
     )
 }
 
@@ -293,6 +723,22 @@ private data class CollectorUiState(
     val sessions: List<SleepSession> = emptyList(),
     val exportFile: File? = null,
     val lookupDurationMs: Long? = null,
+    val isTfliteValidationRunning: Boolean = false,
+    val tfliteValidationStatus: String = "TFLite validation has not run yet.",
+    val tfliteValidationLog: AndroidInferenceValidationLog? = null,
+    val multiSampleParityLog: MultiSampleParityValidationLog? = null,
+    val tabularValidationLog: TabularInferenceValidationLog? = null,
+    val multiSampleTabularValidationLog: MultiSampleTabularValidationLog? = null,
+    val multiSampleDecisionPolicyLog: MultiSampleDecisionPolicyComparisonLog? = null,
+    val selectedDecisionOptions: Set<DecisionPolicyOption> = setOf(
+        DecisionPolicyOption.GRU_ONLY,
+        DecisionPolicyOption.GRU_DEADLINE,
+        DecisionPolicyOption.GRU_STRICT_DEADLINE_GATE,
+        DecisionPolicyOption.GRU_UNKNOWN_GATE,
+        DecisionPolicyOption.GRU_DEADLINE_UNKNOWN_GATE,
+        DecisionPolicyOption.GRU_TABULAR,
+    ),
+    val decisionPolicyResults: List<DecisionPolicyResult> = emptyList(),
 )
 
 private data class CollectorStats(
@@ -431,6 +877,16 @@ private fun SleepSession.durationMinutes(): Long =
 
 private fun com.sfpahsdev.mydream.sleep.SleepStage.durationMinutes(): Long =
     maxOf(0, Duration.between(startTime, endTime).toMinutes())
+
+private fun AndroidInferenceValidationLog.toDecisionPolicyInput(
+    tabularScore: Float? = tabularScoreServerExpected,
+): DecisionPolicyInput =
+    DecisionPolicyInput(
+        gruScore = gruScoreAndroid,
+        tabularScore = tabularScore,
+        minutesBeforeDeadline = contextRaw22.getOrElse(1) { 0f },
+        sequenceUnknownRatio = contextRaw22.getOrElse(18) { 1f },
+    )
 
 private fun Long.formatDurationMs(): String {
     val totalSeconds = this / 1_000

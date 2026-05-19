@@ -29,6 +29,7 @@ dependencies {
     implementation(project(":core:sleep"))
     implementation(project(":core:export"))
     implementation(project(":data:samsung-health"))
+    implementation(project(":feature:on-device-inference"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
