@@ -3,4 +3,7 @@
     <cache-path
         name="exports"
         path="exports/" />
+    <files-path
+        name="sleep_cache"
+        path="mydream_lab_sleep_cache/" />
 </paths>

@@ -86,6 +86,54 @@ data class MultiSampleTabularValidationLog(
     val thresholdFlipCount: Int,
 )
 
+data class InputBuilderParityValidationLog(
+    val timestamp: Instant,
+    val sampleId: String,
+    val sessionId: String,
+    val sessionMatched: Boolean,
+    val availableSessionCount: Int,
+    val sequenceMismatchCount: Int?,
+    val contextRawMaxAbsDiff: Float?,
+    val contextScaledMaxAbsDiff: Float?,
+    val tabularRawMaxAbsDiff: Float?,
+    val tabularScaledMaxAbsDiff: Float?,
+    val passed: Boolean,
+    val message: String,
+)
+
+data class AlarmWindowEvaluationLog(
+    val timestamp: Instant,
+    val sessionId: String,
+    val sourceLabel: String,
+    val deadlinePolicy: String,
+    val deadlineTime: Instant,
+    val candidateCount: Int,
+    val smartWakeCount: Int,
+    val waitCount: Int,
+    val fallbackUsed: Boolean,
+    val selectedAlarmTime: Instant,
+    val selectedMinutesBeforeDeadline: Float,
+    val selectedGruScore: Float?,
+    val selectedTabularScore: Float?,
+    val selectedCombinedScore: Float?,
+    val selectedDecision: AlarmDecision,
+    val selectedReason: AlarmDecisionReason,
+    val threshold: Float,
+    val scoringRecipe: String,
+    val topCandidates: List<AlarmWindowCandidateSummary>,
+    val lateWindowBestCandidate: AlarmWindowCandidateSummary?,
+)
+
+data class AlarmWindowCandidateSummary(
+    val candidateTime: Instant,
+    val minutesBeforeDeadline: Float,
+    val gruScore: Float,
+    val tabularScore: Float,
+    val combinedScore: Float?,
+    val decision: AlarmDecision,
+    val reason: AlarmDecisionReason,
+)
+
 data class MultiSampleDecisionPolicyComparisonLog(
     val timestamp: Instant,
     val modelFile: String,
@@ -93,6 +141,9 @@ data class MultiSampleDecisionPolicyComparisonLog(
     val sampleCount: Int,
     val threshold: Float,
     val summaries: List<MultiSampleDecisionPolicySummary>,
+    val sourceLabel: String = "fixed_parity_samples",
+    val sessionCount: Int? = null,
+    val candidateCount: Int? = null,
 )
 
 data class MultiSampleDecisionPolicySummary(
