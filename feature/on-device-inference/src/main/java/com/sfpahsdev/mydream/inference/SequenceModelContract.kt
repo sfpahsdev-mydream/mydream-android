@@ -2,6 +2,18 @@ package com.sfpahsdev.mydream.inference
 
 import com.sfpahsdev.mydream.sleep.SleepStageType
 
+data class SequenceModelAsset(
+    val modelName: String,
+    val modelType: String,
+    val assetDir: String,
+) {
+    val validationModelAsset: String = "$assetDir/sequence_model_float32.tflite"
+    val optimizedModelAsset: String = "$assetDir/sequence_model_float16.tflite"
+    val scalerAsset: String = "$assetDir/context_scaler.json"
+    val manifestAsset: String = "$assetDir/tflite_manifest.json"
+    val metricsAsset: String = "$assetDir/sequence_metrics.json"
+}
+
 object SequenceModelContract {
     const val WINDOW_MINUTES = 60
     const val RECENT_CONTEXT_MINUTES = 30
@@ -16,6 +28,29 @@ object SequenceModelContract {
     const val METRICS_ASSET = "$ASSET_DIR/sequence_metrics.json"
     const val PARITY_SAMPLE_ASSET = "$ASSET_DIR/parity_sample.json"
     const val PARITY_SAMPLES_ASSET = "$ASSET_DIR/parity_samples.json"
+
+    val benchmarkModels: List<SequenceModelAsset> = listOf(
+        SequenceModelAsset(
+            modelName = "gru64_dense32_dropout00",
+            modelType = "gru",
+            assetDir = "mydream_sequence_gru64_dense32_dropout00",
+        ),
+        SequenceModelAsset(
+            modelName = "tcn64_dense32_dropout00",
+            modelType = "tcn",
+            assetDir = "mydream_sequence_tcn64_dense32_dropout00",
+        ),
+        SequenceModelAsset(
+            modelName = "transformer64_dense32_dropout10",
+            modelType = "transformer",
+            assetDir = "mydream_sequence_transformer64_dense32_dropout10",
+        ),
+        SequenceModelAsset(
+            modelName = "cnn32_gru64_dense32_dropout00",
+            modelType = "cnn_gru",
+            assetDir = "mydream_sequence_cnn32_gru64_dense32_dropout00",
+        ),
+    )
 
     val contextColumns: List<String> = listOf(
         "elapsed_sleep_minutes",

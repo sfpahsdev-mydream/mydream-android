@@ -22,6 +22,7 @@ android {
 
 dependencies {
     implementation(project(":core:sleep"))
+    implementation(libs.androidx.compose.runtime)
     implementation(libs.tensorflow.lite)
     testImplementation(libs.junit)
 }

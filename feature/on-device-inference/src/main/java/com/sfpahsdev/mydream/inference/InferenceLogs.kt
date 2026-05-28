@@ -86,6 +86,22 @@ data class MultiSampleTabularValidationLog(
     val thresholdFlipCount: Int,
 )
 
+data class InferenceBenchmarkLog(
+    val timestamp: Instant,
+    val iterations: Int,
+    val warmupIterations: Int,
+    val results: List<InferenceBenchmarkResult>,
+)
+
+data class InferenceBenchmarkResult(
+    val label: String,
+    val meanMs: Float,
+    val p50Ms: Float,
+    val p95Ms: Float,
+    val minMs: Float,
+    val maxMs: Float,
+)
+
 data class InputBuilderParityValidationLog(
     val timestamp: Instant,
     val sampleId: String,
@@ -110,6 +126,19 @@ data class AlarmWindowEvaluationLog(
     val candidateCount: Int,
     val smartWakeCount: Int,
     val waitCount: Int,
+    val labeledCandidateCount: Int,
+    val targetUnknownCount: Int,
+    val excludedAlreadyDeepCount: Int,
+    val actualDeepSoonCount: Int,
+    val trueSmartCount: Int,
+    val falseSmartCount: Int,
+    val missedSmartCount: Int,
+    val smartPrecision: Float?,
+    val smartRecall: Float?,
+    val labeledUtility: Float?,
+    val fullSampleUtility: Float,
+    val invalidInputCandidateCount: Int,
+    val maxSequenceUnknownRatio: Float,
     val fallbackUsed: Boolean,
     val selectedAlarmTime: Instant,
     val selectedMinutesBeforeDeadline: Float,
@@ -132,6 +161,9 @@ data class AlarmWindowCandidateSummary(
     val combinedScore: Float?,
     val decision: AlarmDecision,
     val reason: AlarmDecisionReason,
+    val actualDeepSoon: Boolean?,
+    val excludedAlreadyDeep: Boolean,
+    val sequenceUnknownRatio: Float,
 )
 
 data class MultiSampleDecisionPolicyComparisonLog(
@@ -144,6 +176,8 @@ data class MultiSampleDecisionPolicyComparisonLog(
     val sourceLabel: String = "fixed_parity_samples",
     val sessionCount: Int? = null,
     val candidateCount: Int? = null,
+    val invalidInputCandidateCount: Int = 0,
+    val maxSequenceUnknownRatio: Float? = null,
 )
 
 data class MultiSampleDecisionPolicySummary(
@@ -155,6 +189,24 @@ data class MultiSampleDecisionPolicySummary(
     val skipTooEarlyCount: Int,
     val skipUnknownTooHighCount: Int,
     val notAvailableCount: Int,
+    val coveredCount: Int,
+    val coverageRate: Float,
+    val totalDecisionCount: Int,
+    val decisionCountMatchesSamples: Boolean,
+    val labeledCandidateCount: Int,
+    val targetUnknownCount: Int,
+    val excludedAlreadyDeepCount: Int,
+    val actualDeepSoonCount: Int,
+    val trueSmartCount: Int,
+    val falseSmartCount: Int,
+    val missedSmartCount: Int,
+    val smartPrecision: Float?,
+    val smartRecall: Float?,
+    val labeledUtility: Float?,
+    val fullSampleUtility: Float,
+    val sessionUtilityMean: Float?,
+    val sessionUtilityMin: Float?,
+    val sessionUtilityMax: Float?,
 )
 
 enum class AlarmDecision {

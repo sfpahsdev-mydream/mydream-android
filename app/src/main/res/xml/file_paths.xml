@@ -6,4 +6,7 @@
     <files-path
         name="sleep_cache"
         path="mydream_lab_sleep_cache/" />
+    <files-path
+        name="lab_logs"
+        path="mydream_lab_logs/" />
 </paths>

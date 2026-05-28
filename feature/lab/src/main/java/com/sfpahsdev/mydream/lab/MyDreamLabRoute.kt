@@ -49,6 +49,7 @@ import com.sfpahsdev.mydream.inference.DecisionPolicyEvaluator
 import com.sfpahsdev.mydream.inference.DecisionPolicyInput
 import com.sfpahsdev.mydream.inference.DecisionPolicyOption
 import com.sfpahsdev.mydream.inference.DecisionPolicyResult
+import com.sfpahsdev.mydream.inference.InferenceBenchmarkLog
 import com.sfpahsdev.mydream.inference.InputBuilderParityValidationLog
 import com.sfpahsdev.mydream.inference.MultiSampleDecisionPolicyComparisonLog
 import com.sfpahsdev.mydream.inference.MultiSampleParityValidationLog
@@ -72,6 +73,7 @@ import org.json.JSONObject
 private val FullHistoryStartDate: LocalDate = LocalDate.of(2014, 1, 1)
 private const val SLEEP_CACHE_DIR_NAME = "mydream_lab_sleep_cache"
 private const val SLEEP_CACHE_FILE_NAME = "mydream_sleep_latest.jsonl"
+private const val LAB_LOG_DIR_NAME = "mydream_lab_logs"
 
 @Composable
 fun MyDreamLabRoute(
@@ -94,6 +96,9 @@ fun MyDreamLabRoute(
     }
     val sleepCacheFile = remember(sleepCacheDir) {
         File(sleepCacheDir, SLEEP_CACHE_FILE_NAME)
+    }
+    val labLogDir = remember(activity) {
+        File(activity.filesDir, LAB_LOG_DIR_NAME)
     }
     var state by remember { mutableStateOf(CollectorUiState()) }
 
@@ -136,6 +141,33 @@ fun MyDreamLabRoute(
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         activity.startActivity(Intent.createChooser(intent, "Export MyDream sleep JSONL"))
+    }
+
+    fun writeLabLogFile(): File {
+        labLogDir.mkdirs()
+        val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+        val file = File(labLogDir, "mydream_lab_logs_$timestamp.txt")
+        file.writeText(state.labLogsExportText(), Charsets.UTF_8)
+        return file
+    }
+
+    fun shareLabLogs() {
+        val logFile = writeLabLogFile()
+        val uri = FileProvider.getUriForFile(
+            activity,
+            "${activity.packageName}.fileprovider",
+            logFile,
+        )
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        state = state.copy(
+            logExportFile = logFile,
+            lastLogExportAt = Instant.now(),
+        )
+        activity.startActivity(Intent.createChooser(intent, "Export MyDream lab logs"))
     }
 
     LaunchedEffect(Unit) {
@@ -201,6 +233,7 @@ fun MyDreamLabRoute(
             }
         },
         onShareExport = ::shareExport,
+        onShareLogs = ::shareLabLogs,
         onRunTfliteValidation = {
             scope.launch {
                 state = state.copy(
@@ -439,6 +472,29 @@ fun MyDreamLabRoute(
                 }
             }
         },
+        onRunInferenceBenchmark = {
+            scope.launch {
+                state = state.copy(
+                    isTfliteValidationRunning = true,
+                    tfliteValidationStatus = "Running inference benchmark...",
+                    selectedValidationAction = ValidationAction.INFERENCE_BENCHMARK,
+                )
+                state = try {
+                    val log = sequenceModelValidator.runInferenceBenchmark(state.sessions)
+                    state.copy(
+                        isTfliteValidationRunning = false,
+                        tfliteValidationStatus = "Inference benchmark finished.",
+                        inferenceBenchmarkLog = log,
+                    )
+                } catch (error: Throwable) {
+                    state.copy(
+                        isTfliteValidationRunning = false,
+                        tfliteValidationStatus = "Inference benchmark failed: ${error.message}",
+                        inferenceBenchmarkLog = null,
+                    )
+                }
+            }
+        },
         onToggleDecisionOption = { option ->
             state = state.copy(
                 selectedDecisionOptions = if (option in state.selectedDecisionOptions) {
@@ -538,6 +594,7 @@ private fun CollectorScreen(
     state: CollectorUiState,
     onReadSleep: () -> Unit,
     onShareExport: () -> Unit,
+    onShareLogs: () -> Unit,
     onRunTfliteValidation: () -> Unit,
     onRunFloat16TfliteValidation: () -> Unit,
     onRunMultiFloat32TfliteValidation: () -> Unit,
@@ -548,6 +605,7 @@ private fun CollectorScreen(
     onRunMultiFloat16TabularValidation: () -> Unit,
     onRunInputBuilderValidation: () -> Unit,
     onRunAlarmWindowEvaluation: () -> Unit,
+    onRunInferenceBenchmark: () -> Unit,
     onToggleDecisionOption: (DecisionPolicyOption) -> Unit,
     onCompareSelectedDecisionOptions: () -> Unit,
     onCompareMultiSampleDecisionOptions: () -> Unit,
@@ -574,6 +632,7 @@ private fun CollectorScreen(
             state = state,
             onReadSleep = onReadSleep,
             onShareExport = onShareExport,
+            onShareLogs = onShareLogs,
         )
         ValidationActionsCard(
             state = state,
@@ -587,7 +646,9 @@ private fun CollectorScreen(
             onRunMultiFloat16TabularValidation = onRunMultiFloat16TabularValidation,
             onRunInputBuilderValidation = onRunInputBuilderValidation,
             onRunAlarmWindowEvaluation = onRunAlarmWindowEvaluation,
+            onRunInferenceBenchmark = onRunInferenceBenchmark,
         )
+        InferenceBenchmarkCard(state)
         ModelValidationCard(state)
         InputBuilderValidationCard(state)
         AlarmWindowEvaluationCard(state)
@@ -609,10 +670,11 @@ private fun DataActionsCard(
     state: CollectorUiState,
     onReadSleep: () -> Unit,
     onShareExport: () -> Unit,
+    onShareLogs: () -> Unit,
 ) {
     ActionCard(
         title = "Data",
-        copyText = "Data\nsessions=${state.sessions.size}\nstages=${state.sessions.sumOf { it.stages.size }}\nlast_loaded=${state.lastLoadedAt?.toLocalDateTimeLabel() ?: "-"}\nsource=${state.loadedDataSource}\nexport=${state.exportFile?.name ?: "-"}",
+        copyText = "Data\nsessions=${state.sessions.size}\nstages=${state.sessions.sumOf { it.stages.size }}\nlast_loaded=${state.lastLoadedAt?.toLocalDateTimeLabel() ?: "-"}\nsource=${state.loadedDataSource}\nexport=${state.exportFile?.name ?: "-"}\nlog_export=${state.logExportFile?.name ?: "-"}",
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -633,6 +695,13 @@ private fun DataActionsCard(
                 Text("Export")
             }
         }
+        Button(
+            onClick = onShareLogs,
+            enabled = !state.isLoading && !state.isTfliteValidationRunning,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Export logs")
+        }
     }
 }
 
@@ -649,6 +718,7 @@ private fun ValidationActionsCard(
     onRunMultiFloat16TabularValidation: () -> Unit,
     onRunInputBuilderValidation: () -> Unit,
     onRunAlarmWindowEvaluation: () -> Unit,
+    onRunInferenceBenchmark: () -> Unit,
 ) {
     val enabled = !state.isLoading && !state.isTfliteValidationRunning
     ActionCard(
@@ -762,6 +832,13 @@ private fun ValidationActionsCard(
                 text = "Latest 30m",
             )
         }
+        Button(
+            onClick = onRunInferenceBenchmark,
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Benchmark inference")
+        }
     }
 }
 
@@ -824,6 +901,26 @@ private fun StatusCard(state: CollectorUiState) {
             state.exportFile?.let { file ->
                 Text("Export: ${file.name}")
             }
+    }
+}
+
+@Composable
+private fun InferenceBenchmarkCard(state: CollectorUiState) {
+    CopyableCard(
+        title = "Inference benchmark",
+        copyText = state.inferenceBenchmarkCopyText(),
+    ) {
+        Text(state.tfliteValidationStatus)
+        state.inferenceBenchmarkLog?.let { log ->
+            Text("Iterations: ${log.iterations}, warmup: ${log.warmupIterations}")
+            log.results.forEach { result ->
+                Text(result.label, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "mean=${result.meanMs.formatMs()}, p50=${result.p50Ms.formatMs()}, " +
+                        "p95=${result.p95Ms.formatMs()}, max=${result.maxMs.formatMs()}",
+                )
+            }
+        }
     }
 }
 
@@ -942,6 +1039,20 @@ private fun AlarmWindowEvaluationCard(state: CollectorUiState) {
                 Text("Combined: ${"%.8f".format(score)}")
             }
             Text("Candidates: ${log.candidateCount}, SMART_WAKE: ${log.smartWakeCount}, WAIT: ${log.waitCount}")
+            Text(
+                "Labeled / target unknown / excluded Deep: " +
+                    "${log.labeledCandidateCount}/${log.targetUnknownCount}/${log.excludedAlreadyDeepCount}",
+            )
+            Text("Actual deep soon: ${log.actualDeepSoonCount}")
+            Text("True/false/missed smart: ${log.trueSmartCount}/${log.falseSmartCount}/${log.missedSmartCount}")
+            Text(
+                "Precision / recall: ${log.smartPrecision.formatMetric()} / ${log.smartRecall.formatMetric()}",
+            )
+            Text(
+                "Utility labeled / all: ${log.labeledUtility.formatMetric()} / ${log.fullSampleUtility.formatMetric()}",
+            )
+            Text("Invalid inputs: ${log.invalidInputCandidateCount}")
+            Text("Max unknown ratio: ${log.maxSequenceUnknownRatio.formatMetric()}")
             log.lateWindowBestCandidate?.let { candidate ->
                 Text("Best in last 10m", style = MaterialTheme.typography.titleSmall)
                 CandidateSummaryLine(candidate)
@@ -964,7 +1075,8 @@ private fun CandidateSummaryLine(candidate: AlarmWindowCandidateSummary) {
     Text(
         "${candidate.candidateTime.toLocalTimeLabel()} " +
             "(${candidate.minutesBeforeDeadline.formatOneDecimal()}m) " +
-            "score $combined / ${candidate.decision}",
+            "score $combined / ${candidate.decision} / " +
+            "actual ${candidate.actualLabel()}",
     )
 }
 
@@ -1095,6 +1207,10 @@ private fun DecisionPolicyComparisonCard(
             }
             Text("Samples: ${log.sampleCount}")
             Text("Threshold: ${log.threshold}")
+            Text("Invalid inputs: ${log.invalidInputCandidateCount}")
+            log.maxSequenceUnknownRatio?.let { ratio ->
+                Text("Max unknown ratio: ${ratio.formatMetric()}")
+            }
             log.summaries.forEach { summary ->
                 Text(summary.option.label, style = MaterialTheme.typography.titleSmall)
                 Text("Mean score: ${summary.meanScore?.let { "%.8f".format(it) } ?: "NOT_AVAILABLE"}")
@@ -1104,6 +1220,24 @@ private fun DecisionPolicyComparisonCard(
                 Text("SKIP_TOO_EARLY: ${summary.skipTooEarlyCount}")
                 Text("SKIP_UNKNOWN_TOO_HIGH: ${summary.skipUnknownTooHighCount}")
                 Text("NOT_AVAILABLE: ${summary.notAvailableCount}")
+                Text("Count valid: ${summary.totalDecisionCount}/${log.sampleCount} = ${summary.decisionCountMatchesSamples}")
+                Text("Coverage: ${summary.coveredCount}/${log.sampleCount} (${summary.coverageRate.formatPercent()})")
+                Text(
+                    "Labeled / target unknown / excluded Deep: " +
+                        "${summary.labeledCandidateCount}/${summary.targetUnknownCount}/${summary.excludedAlreadyDeepCount}",
+                )
+                Text("Actual deep soon: ${summary.actualDeepSoonCount}")
+                Text("True/false/missed smart: ${summary.trueSmartCount}/${summary.falseSmartCount}/${summary.missedSmartCount}")
+                Text("Precision / recall: ${summary.smartPrecision.formatMetric()} / ${summary.smartRecall.formatMetric()}")
+                Text(
+                    "Utility labeled / all: ${summary.labeledUtility.formatMetric()} / ${summary.fullSampleUtility.formatMetric()}",
+                )
+                summary.sessionUtilityMean?.let {
+                    Text(
+                        "Session utility mean/min/max: ${it.formatMetric()} / " +
+                            "${summary.sessionUtilityMin.formatMetric()} / ${summary.sessionUtilityMax.formatMetric()}",
+                    )
+                }
             }
         }
     }
@@ -1176,6 +1310,7 @@ private fun CollectorScreenPreview() {
         state = CollectorUiState(status = "미리보기"),
         onReadSleep = {},
         onShareExport = {},
+        onShareLogs = {},
         onRunTfliteValidation = {},
         onRunFloat16TfliteValidation = {},
         onRunMultiFloat32TfliteValidation = {},
@@ -1186,6 +1321,7 @@ private fun CollectorScreenPreview() {
         onRunMultiFloat16TabularValidation = {},
         onRunInputBuilderValidation = {},
         onRunAlarmWindowEvaluation = {},
+        onRunInferenceBenchmark = {},
         onToggleDecisionOption = {},
         onCompareSelectedDecisionOptions = {},
         onCompareMultiSampleDecisionOptions = {},
@@ -1200,6 +1336,8 @@ private data class CollectorUiState(
     val to: LocalDateTime? = null,
     val sessions: List<SleepSession> = emptyList(),
     val exportFile: File? = null,
+    val logExportFile: File? = null,
+    val lastLogExportAt: Instant? = null,
     val lookupDurationMs: Long? = null,
     val isTfliteValidationRunning: Boolean = false,
     val tfliteValidationStatus: String = "TFLite validation has not run yet.",
@@ -1207,6 +1345,7 @@ private data class CollectorUiState(
     val multiSampleParityLog: MultiSampleParityValidationLog? = null,
     val tabularValidationLog: TabularInferenceValidationLog? = null,
     val multiSampleTabularValidationLog: MultiSampleTabularValidationLog? = null,
+    val inferenceBenchmarkLog: InferenceBenchmarkLog? = null,
     val inputBuilderParityLog: InputBuilderParityValidationLog? = null,
     val alarmWindowEvaluationLog: AlarmWindowEvaluationLog? = null,
     val selectedValidationAction: ValidationAction? = null,
@@ -1241,6 +1380,7 @@ private enum class ValidationAction {
     TABULAR_MULTI_FLOAT16,
     INPUT_BUILDERS,
     ALARM_WINDOW,
+    INFERENCE_BENCHMARK,
 }
 
 private data class CollectorStats(
@@ -1371,6 +1511,49 @@ private fun CollectorUiState.statusCopyText(): String = buildString {
     to?.let { appendLine("to=${it.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)}") }
     lookupDurationMs?.let { appendLine("lookup=${it.formatDurationMs()}") }
     exportFile?.let { appendLine("export=${it.name}") }
+    logExportFile?.let { appendLine("log_export=${it.name}") }
+    lastLogExportAt?.let { appendLine("last_log_export=${it.toLocalDateTimeLabel()}") }
+}
+
+private fun CollectorUiState.labLogsExportText(): String = buildString {
+    appendLine("MyDream Lab Logs")
+    appendLine("generated_at=${Instant.now()}")
+    appendLine()
+    appendLine(statusCopyText())
+    appendLine()
+    appendLine(modelValidationCopyText())
+    inferenceBenchmarkLog?.let {
+        appendLine()
+        appendLine(inferenceBenchmarkCopyText())
+    }
+    inputBuilderParityLog?.let { log ->
+        appendLine()
+        appendLine(log.toCopyText())
+    }
+    alarmWindowEvaluationLog?.let { log ->
+        appendLine()
+        appendLine(log.toCopyText())
+    }
+    appendLine()
+    appendLine(policyExperimentsCopyText())
+}
+
+private fun CollectorUiState.inferenceBenchmarkCopyText(): String = buildString {
+    appendLine("Inference benchmark")
+    val log = inferenceBenchmarkLog
+    if (log == null) {
+        appendLine("not_run")
+        return@buildString
+    }
+    appendLine("timestamp=${log.timestamp}")
+    appendLine("iterations=${log.iterations}")
+    appendLine("warmup_iterations=${log.warmupIterations}")
+    log.results.forEach { result ->
+        appendLine(
+            "${result.label}: mean=${result.meanMs.formatMs()}, p50=${result.p50Ms.formatMs()}, " +
+                "p95=${result.p95Ms.formatMs()}, min=${result.minMs.formatMs()}, max=${result.maxMs.formatMs()}",
+        )
+    }
 }
 
 private fun CollectorUiState.modelValidationCopyText(): String = buildString {
@@ -1431,6 +1614,14 @@ private fun AlarmWindowEvaluationLog.toCopyText(): String = buildString {
     appendLine("tabular=${selectedTabularScore?.let { "%.8f".format(it) } ?: "-"}")
     appendLine("combined=${selectedCombinedScore?.let { "%.8f".format(it) } ?: "-"}")
     appendLine("candidates=$candidateCount, smart=$smartWakeCount, wait=$waitCount")
+    appendLine(
+        "labeled=$labeledCandidateCount, target_unknown=$targetUnknownCount, " +
+            "excluded_already_deep=$excludedAlreadyDeepCount, actual_deep_soon=$actualDeepSoonCount",
+    )
+    appendLine("true_smart=$trueSmartCount, false_smart=$falseSmartCount, missed_smart=$missedSmartCount")
+    appendLine("smart_precision=${smartPrecision.formatMetric()}, smart_recall=${smartRecall.formatMetric()}")
+    appendLine("utility_labeled=${labeledUtility.formatMetric()}, utility_all=${fullSampleUtility.formatMetric()}")
+    appendLine("invalid_inputs=$invalidInputCandidateCount, max_unknown_ratio=${maxSequenceUnknownRatio.formatMetric()}")
     lateWindowBestCandidate?.let { appendLine("best_last_10m=${it.toCopyLine()}") }
     if (topCandidates.isNotEmpty()) {
         appendLine("top_candidates")
@@ -1442,7 +1633,9 @@ private fun AlarmWindowEvaluationLog.toCopyText(): String = buildString {
 
 private fun AlarmWindowCandidateSummary.toCopyLine(): String {
     val combined = combinedScore?.let { "%.4f".format(it) } ?: "-"
-    return "${candidateTime.toLocalTimeLabel()} (${minutesBeforeDeadline.formatOneDecimal()}m) score=$combined decision=$decision"
+    return "${candidateTime.toLocalTimeLabel()} (${minutesBeforeDeadline.formatOneDecimal()}m) " +
+        "score=$combined decision=$decision actual=${actualLabel()} " +
+        "unknown_ratio=${sequenceUnknownRatio.formatMetric()}"
 }
 
 private fun CollectorUiState.policyExperimentsCopyText(): String = buildString {
@@ -1455,8 +1648,37 @@ private fun CollectorUiState.policyExperimentsCopyText(): String = buildString {
         appendLine("source=${log.sourceLabel}")
         log.sessionCount?.let { appendLine("sessions=$it") }
         appendLine("samples=${log.sampleCount}, threshold=${log.threshold}")
+        appendLine(
+            "invalid_inputs=${log.invalidInputCandidateCount}, " +
+                "max_unknown_ratio=${log.maxSequenceUnknownRatio.formatMetric()}",
+        )
         log.summaries.forEach { summary ->
-            appendLine("${summary.option.label}: mean=${summary.meanScore?.let { "%.8f".format(it) } ?: "NOT_AVAILABLE"}, smart=${summary.smartWakeCount}, wait=${summary.waitCount}, unavailable=${summary.notAvailableCount}")
+            appendLine(
+                "${summary.option.label}: mean=${summary.meanScore?.let { "%.8f".format(it) } ?: "NOT_AVAILABLE"}, " +
+                    "smart=${summary.smartWakeCount}, wait=${summary.waitCount}, " +
+                    "skip_early=${summary.skipTooEarlyCount}, skip_unknown=${summary.skipUnknownTooHighCount}, " +
+                    "unavailable=${summary.notAvailableCount}",
+            )
+            appendLine(
+                "  count=${summary.totalDecisionCount}/${log.sampleCount}, valid=${summary.decisionCountMatchesSamples}, " +
+                    "coverage=${summary.coveredCount}/${log.sampleCount} (${summary.coverageRate.formatPercent()})",
+            )
+            appendLine(
+                "  labeled=${summary.labeledCandidateCount}, target_unknown=${summary.targetUnknownCount}, " +
+                    "excluded_already_deep=${summary.excludedAlreadyDeepCount}, " +
+                    "actual_deep_soon=${summary.actualDeepSoonCount}",
+            )
+            appendLine(
+                "  true_smart=${summary.trueSmartCount}, false_smart=${summary.falseSmartCount}, " +
+                    "missed_smart=${summary.missedSmartCount}, precision=${summary.smartPrecision.formatMetric()}, " +
+                    "recall=${summary.smartRecall.formatMetric()}",
+            )
+            appendLine(
+                "  utility_labeled=${summary.labeledUtility.formatMetric()}, " +
+                    "utility_all=${summary.fullSampleUtility.formatMetric()}, " +
+                    "session_utility_mean=${summary.sessionUtilityMean.formatMetric()}, " +
+                    "min=${summary.sessionUtilityMin.formatMetric()}, max=${summary.sessionUtilityMax.formatMetric()}",
+            )
         }
     }
 }
@@ -1521,6 +1743,21 @@ private fun maxOfNotNull(vararg values: Float?): Float? =
 
 private fun Float.formatOneDecimal(): String =
     "%.1f".format(this)
+
+private fun Float?.formatMetric(): String =
+    this?.let { "%.4f".format(it) } ?: "-"
+
+private fun Float.formatPercent(): String =
+    "%.1f%%".format(this * 100f)
+
+private fun Float.formatMs(): String =
+    "%.3f ms".format(this)
+
+private fun AlarmWindowCandidateSummary.actualLabel(): String = when {
+    excludedAlreadyDeep -> "EXCLUDED_ALREADY_DEEP"
+    actualDeepSoon != null -> actualDeepSoon.toString()
+    else -> "UNKNOWN"
+}
 
 private fun AndroidInferenceValidationLog.toDecisionPolicyInput(
     tabularScore: Float? = tabularScoreServerExpected,

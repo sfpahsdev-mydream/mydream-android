@@ -1,12 +1,16 @@
 package com.sfpahsdev.mydream.inference
 
 import android.content.Context
+import androidx.compose.runtime.Composable
 import com.sfpahsdev.mydream.sleep.SleepSession
+import com.sfpahsdev.mydream.sleep.SleepStageType
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
 import kotlin.math.abs
+import kotlin.math.roundToInt
+
 
 class AndroidSequenceModelValidator(
     private val context: Context,
@@ -127,13 +131,109 @@ class AndroidSequenceModelValidator(
         )
     }
 
+    fun runInferenceBenchmark(
+        sessions: List<SleepSession> = emptyList(),
+        iterations: Int = DEFAULT_BENCHMARK_ITERATIONS,
+        warmupIterations: Int = DEFAULT_BENCHMARK_WARMUP_ITERATIONS,
+    ): InferenceBenchmarkLog {
+        require(iterations > 0) { "iterations must be positive." }
+        require(warmupIterations >= 0) { "warmupIterations must be zero or positive." }
+
+        val sample = AndroidSequenceModelAssets.loadParitySample(context)
+        val sequenceInput = sample.toModelInput()
+        val tabularInput = sample.toTabularModelInput()
+        val results = mutableListOf<InferenceBenchmarkResult>()
+
+        SequenceModelContract.benchmarkModels.forEach { model ->
+            TfliteSequenceModelRunner(context, model.validationModelAsset).use { runner ->
+                results += benchmarkInference("${model.modelName}_float32_predict", iterations, warmupIterations) {
+                    runner.predict(sequenceInput)
+                }
+            }
+            TfliteSequenceModelRunner(context, model.optimizedModelAsset).use { runner ->
+                results += benchmarkInference("${model.modelName}_float16_predict", iterations, warmupIterations) {
+                    runner.predict(sequenceInput)
+                }
+            }
+        }
+        TfliteTabularModelRunner(context, TabularModelContract.VALIDATION_MODEL_ASSET).use { runner ->
+            results += benchmarkInference("tabular_float32_predict", iterations, warmupIterations) {
+                runner.predict(tabularInput)
+            }
+        }
+        TfliteTabularModelRunner(context, TabularModelContract.OPTIMIZED_MODEL_ASSET).use { runner ->
+            results += benchmarkInference("tabular_float16_predict", iterations, warmupIterations) {
+                runner.predict(tabularInput)
+            }
+        }
+
+        val policyInput = DecisionPolicyInput(
+            gruScore = sample.expectedGruScore,
+            tabularScore = sample.expectedTabularScore,
+            minutesBeforeDeadline = sample.contextRaw22.getOrElse(1) { 0f },
+            sequenceUnknownRatio = sample.contextRaw22.getOrElse(18) { 1f },
+        )
+        results += benchmarkInference("policy_gru_tabular", iterations, warmupIterations) {
+            DecisionPolicyEvaluator.evaluate(DecisionPolicyOption.GRU_TABULAR, policyInput).score ?: 0f
+        }
+
+        val matchedSession = sessions.firstOrNull { it.id == sample.sessionId }
+        if (matchedSession != null) {
+            val sequenceBuilder = SequenceModelInputBuilder(AndroidSequenceModelAssets.loadScaler(context))
+            val tabularBuilder = TabularModelInputBuilder(AndroidSequenceModelAssets.loadTabularScaler(context))
+            SequenceModelContract.benchmarkModels.forEach { model ->
+                TfliteSequenceModelRunner(context, model.validationModelAsset).use { sequenceRunner ->
+                    TfliteTabularModelRunner(context, TabularModelContract.VALIDATION_MODEL_ASSET).use { tabularRunner ->
+                        results += benchmarkInference(
+                            label = "${model.modelName}_end_to_end_build_predict_policy",
+                            iterations = iterations,
+                            warmupIterations = warmupIterations,
+                        ) {
+                            val builtSequenceInput = sequenceBuilder.build(
+                                session = matchedSession,
+                                candidateTime = sample.candidateTime,
+                                deadlineTime = sample.deadlineTime,
+                            )
+                            val builtTabularInput = tabularBuilder.build(
+                                session = matchedSession,
+                                candidateTime = sample.candidateTime,
+                                deadlineTime = sample.deadlineTime,
+                            )
+                            val gruScore = sequenceRunner.predict(builtSequenceInput)
+                            val tabularScore = tabularRunner.predict(builtTabularInput)
+                            val result = DecisionPolicyEvaluator.evaluate(
+                                option = DecisionPolicyOption.GRU_TABULAR,
+                                input = DecisionPolicyInput(
+                                    gruScore = gruScore,
+                                    tabularScore = tabularScore,
+                                    minutesBeforeDeadline = builtSequenceInput.contextRaw22.getOrElse(1) { 0f },
+                                    sequenceUnknownRatio = builtSequenceInput.contextRaw22.getOrElse(18) { 1f },
+                                ),
+                            )
+                            result.score ?: 0f
+                        }
+                    }
+                }
+            }
+        }
+
+        return InferenceBenchmarkLog(
+            timestamp = Instant.now(),
+            iterations = iterations,
+            warmupIterations = warmupIterations,
+            results = results,
+        )
+    }
+
     fun runMultiSampleDecisionPolicyComparison(
         options: Set<DecisionPolicyOption>,
     ): MultiSampleDecisionPolicyComparisonLog {
         val samples = AndroidSequenceModelAssets.loadParitySamples(context)
         require(samples.isNotEmpty()) { "No parity samples found." }
 
-        val resultsByOption = DecisionPolicyOption.entries.associateWith { mutableListOf<DecisionPolicyResult>() }
+        val resultsByOption = DecisionPolicyOption.entries.associateWith { mutableListOf<PolicyObservation>() }
+        var invalidInputCandidateCount = 0
+        var maxSequenceUnknownRatio = 0f
         TfliteSequenceModelRunner(context, SequenceModelContract.VALIDATION_MODEL_ASSET).use { sequenceRunner ->
             TfliteTabularModelRunner(context, TabularModelContract.VALIDATION_MODEL_ASSET).use { tabularRunner ->
                 samples.forEach { sample ->
@@ -145,8 +245,21 @@ class AndroidSequenceModelValidator(
                         minutesBeforeDeadline = sample.contextRaw22.getOrElse(1) { 0f },
                         sequenceUnknownRatio = sample.contextRaw22.getOrElse(18) { 1f },
                     )
+                    maxSequenceUnknownRatio = maxOf(maxSequenceUnknownRatio, input.sequenceUnknownRatio)
+                    if (!sample.contextRaw22.all { it.isFinite() } ||
+                        !sample.contextScaled22.all { it.isFinite() } ||
+                        !gruScore.isFinite() ||
+                        !tabularScore.isFinite()
+                    ) {
+                        invalidInputCandidateCount += 1
+                    }
                     DecisionPolicyEvaluator.evaluateAll(options, input).forEach { result ->
-                        resultsByOption.getValue(result.option) += result
+                        resultsByOption.getValue(result.option) += PolicyObservation(
+                            result = result,
+                            actualDeepSoon = null,
+                            excludedAlreadyDeep = false,
+                            sessionId = null,
+                        )
                     }
                 }
             }
@@ -160,7 +273,9 @@ class AndroidSequenceModelValidator(
             threshold = SequenceModelContract.SCORING_THRESHOLD,
             summaries = DecisionPolicyOption.entries
                 .filter { option -> option in options }
-                .map { option -> resultsByOption.getValue(option).toSummary(option) },
+                .map { option -> resultsByOption.getValue(option).toSummary(option, samples.size) },
+            invalidInputCandidateCount = invalidInputCandidateCount,
+            maxSequenceUnknownRatio = maxSequenceUnknownRatio,
         )
     }
 
@@ -184,8 +299,10 @@ class AndroidSequenceModelValidator(
             .sortedBy { it.endTime }
         require(recentSessions.isNotEmpty()) { "No recent sleep sessions found." }
 
-        val resultsByOption = DecisionPolicyOption.entries.associateWith { mutableListOf<DecisionPolicyResult>() }
+        val resultsByOption = DecisionPolicyOption.entries.associateWith { mutableListOf<PolicyObservation>() }
         var candidateCount = 0
+        var invalidInputCandidateCount = 0
+        var maxSequenceUnknownRatio = 0f
         val sequenceScaler = AndroidSequenceModelAssets.loadScaler(context)
         val tabularScaler = AndroidSequenceModelAssets.loadTabularScaler(context)
         val sequenceBuilder = SequenceModelInputBuilder(sequenceScaler)
@@ -209,6 +326,8 @@ class AndroidSequenceModelValidator(
                         )
                         val gruScore = sequenceRunner.predict(sequenceInput)
                         val tabularScore = tabularRunner.predict(tabularInput)
+                        val actualDeepSoon = actualDeepSoonOrNull(session, candidateTime)
+                        val excludedAlreadyDeep = stageAt(session, candidateTime) == SleepStageType.Deep
                         val input = DecisionPolicyInput(
                             gruScore = gruScore,
                             tabularScore = tabularScore,
@@ -217,8 +336,23 @@ class AndroidSequenceModelValidator(
                             },
                             sequenceUnknownRatio = sequenceInput.contextRaw22.getOrElse(18) { 1f },
                         )
+                        maxSequenceUnknownRatio = maxOf(maxSequenceUnknownRatio, input.sequenceUnknownRatio)
+                        if (!sequenceInput.contextRaw22.all { it.isFinite() } ||
+                            !sequenceInput.contextScaled22.all { it.isFinite() } ||
+                            !tabularInput.rawFeatures28.all { it.isFinite() } ||
+                            !tabularInput.scaledFeatures28.all { it.isFinite() } ||
+                            !gruScore.isFinite() ||
+                            !tabularScore.isFinite()
+                        ) {
+                            invalidInputCandidateCount += 1
+                        }
                         DecisionPolicyEvaluator.evaluateAll(options, input).forEach { result ->
-                            resultsByOption.getValue(result.option) += result
+                            resultsByOption.getValue(result.option) += PolicyObservation(
+                                result = result,
+                                actualDeepSoon = actualDeepSoon,
+                                excludedAlreadyDeep = excludedAlreadyDeep,
+                                sessionId = session.id,
+                            )
                         }
                         candidateCount += 1
                     }
@@ -234,10 +368,12 @@ class AndroidSequenceModelValidator(
             threshold = SequenceModelContract.SCORING_THRESHOLD,
             summaries = DecisionPolicyOption.entries
                 .filter { option -> option in options }
-                .map { option -> resultsByOption.getValue(option).toSummary(option) },
+                .map { option -> resultsByOption.getValue(option).toSummary(option, candidateCount) },
             sourceLabel = "recent_${RECENT_POLICY_WINDOW_DAYS}_days_target_wake_policy",
             sessionCount = recentSessions.size,
             candidateCount = candidateCount,
+            invalidInputCandidateCount = invalidInputCandidateCount,
+            maxSequenceUnknownRatio = maxSequenceUnknownRatio,
         )
     }
 
@@ -362,6 +498,8 @@ class AndroidSequenceModelValidator(
                     )
                     val gruScore = sequenceRunner.predict(sequenceInput)
                     val tabularScore = tabularRunner.predict(tabularInput)
+                    val actualDeepSoon = actualDeepSoonOrNull(session, candidateTime)
+                    val excludedAlreadyDeep = stageAt(session, candidateTime) == SleepStageType.Deep
                     val policyInput = DecisionPolicyInput(
                         gruScore = gruScore,
                         tabularScore = tabularScore,
@@ -378,6 +516,15 @@ class AndroidSequenceModelValidator(
                         gruScore = gruScore,
                         tabularScore = tabularScore,
                         result = decision,
+                        actualDeepSoon = actualDeepSoon,
+                        excludedAlreadyDeep = excludedAlreadyDeep,
+                        sequenceUnknownRatio = policyInput.sequenceUnknownRatio,
+                        inputIsFinite = sequenceInput.contextRaw22.all { it.isFinite() } &&
+                            sequenceInput.contextScaled22.all { it.isFinite() } &&
+                            tabularInput.rawFeatures28.all { it.isFinite() } &&
+                            tabularInput.scaledFeatures28.all { it.isFinite() } &&
+                            gruScore.isFinite() &&
+                            tabularScore.isFinite(),
                     )
                 }
             }
@@ -402,6 +549,16 @@ class AndroidSequenceModelValidator(
                     .thenBy { it.candidateTime },
             )
             ?.toSummary()
+        val policyMetrics = candidates
+            .map { candidate ->
+                PolicyObservation(
+                    result = candidate.result,
+                    actualDeepSoon = candidate.actualDeepSoon,
+                    excludedAlreadyDeep = candidate.excludedAlreadyDeep,
+                    sessionId = session.id,
+                )
+            }
+            .toSummary(DecisionPolicyOption.GRU_TABULAR, candidates.size)
 
         return AlarmWindowEvaluationLog(
             timestamp = Instant.now(),
@@ -412,6 +569,19 @@ class AndroidSequenceModelValidator(
             candidateCount = candidates.size,
             smartWakeCount = candidates.count { it.result.decision == AlarmDecision.SMART_WAKE },
             waitCount = candidates.count { it.result.decision == AlarmDecision.WAIT },
+            labeledCandidateCount = policyMetrics.labeledCandidateCount,
+            targetUnknownCount = policyMetrics.targetUnknownCount,
+            excludedAlreadyDeepCount = policyMetrics.excludedAlreadyDeepCount,
+            actualDeepSoonCount = policyMetrics.actualDeepSoonCount,
+            trueSmartCount = policyMetrics.trueSmartCount,
+            falseSmartCount = policyMetrics.falseSmartCount,
+            missedSmartCount = policyMetrics.missedSmartCount,
+            smartPrecision = policyMetrics.smartPrecision,
+            smartRecall = policyMetrics.smartRecall,
+            labeledUtility = policyMetrics.labeledUtility,
+            fullSampleUtility = policyMetrics.fullSampleUtility,
+            invalidInputCandidateCount = candidates.count { !it.inputIsFinite },
+            maxSequenceUnknownRatio = candidates.maxOfOrNull { it.sequenceUnknownRatio } ?: 0f,
             fallbackUsed = fallback,
             selectedAlarmTime = if (fallback) deadlineTime else selectedCandidate.candidateTime,
             selectedMinutesBeforeDeadline = if (fallback) 0f else selectedCandidate.minutesBeforeDeadline,
@@ -522,19 +692,80 @@ class AndroidSequenceModelValidator(
         )
     }
 
-    private fun List<DecisionPolicyResult>.toSummary(
+    private fun List<PolicyObservation>.toSummary(
         option: DecisionPolicyOption,
+        sampleCount: Int,
     ): MultiSampleDecisionPolicySummary {
-        val scores = mapNotNull { it.score }
+        val results = map { it.result }
+        val scores = results.mapNotNull { it.score }
+        val labeled = filter { it.actualDeepSoon != null }
+        val excludedAlreadyDeepCount = count { it.excludedAlreadyDeep }
+        val smart = labeled.filter { it.result.decision == AlarmDecision.SMART_WAKE }
+        val trueSmartCount = smart.count { it.actualDeepSoon == true }
+        val falseSmartCount = smart.count { it.actualDeepSoon == false }
+        val actualDeepSoonCount = labeled.count { it.actualDeepSoon == true }
+        val missedSmartCount = labeled.count {
+            it.actualDeepSoon == true && it.result.decision != AlarmDecision.SMART_WAKE
+        }
+        val utilitySum = labeled.sumOf { observation ->
+            when {
+                observation.result.decision == AlarmDecision.SMART_WAKE && observation.actualDeepSoon == true -> 1
+                observation.result.decision == AlarmDecision.SMART_WAKE -> -1
+                observation.actualDeepSoon == true -> -1
+                else -> 0
+            }
+        }
+        val coveredCount = results.count {
+            it.decision == AlarmDecision.SMART_WAKE || it.decision == AlarmDecision.WAIT
+        }
+        val totalDecisionCount = results.size
+        val sessionUtilities = labeled
+            .filter { it.sessionId != null }
+            .groupBy { it.sessionId }
+            .values
+            .map { sessionRows ->
+                sessionRows.sumOf { observation ->
+                    when {
+                        observation.result.decision == AlarmDecision.SMART_WAKE && observation.actualDeepSoon == true -> 1
+                        observation.result.decision == AlarmDecision.SMART_WAKE -> -1
+                        observation.actualDeepSoon == true -> -1
+                        else -> 0
+                    }
+                }.toFloat() / sessionRows.size
+            }
         return MultiSampleDecisionPolicySummary(
             option = option,
             availableScoreCount = scores.size,
             meanScore = scores.takeIf { it.isNotEmpty() }?.average()?.toFloat(),
-            smartWakeCount = count { it.decision == AlarmDecision.SMART_WAKE },
-            waitCount = count { it.decision == AlarmDecision.WAIT },
-            skipTooEarlyCount = count { it.decision == AlarmDecision.SKIP_TOO_EARLY },
-            skipUnknownTooHighCount = count { it.decision == AlarmDecision.SKIP_UNKNOWN_TOO_HIGH },
-            notAvailableCount = count { it.decision == AlarmDecision.NOT_AVAILABLE },
+            smartWakeCount = results.count { it.decision == AlarmDecision.SMART_WAKE },
+            waitCount = results.count { it.decision == AlarmDecision.WAIT },
+            skipTooEarlyCount = results.count { it.decision == AlarmDecision.SKIP_TOO_EARLY },
+            skipUnknownTooHighCount = results.count { it.decision == AlarmDecision.SKIP_UNKNOWN_TOO_HIGH },
+            notAvailableCount = results.count { it.decision == AlarmDecision.NOT_AVAILABLE },
+            coveredCount = coveredCount,
+            coverageRate = if (sampleCount > 0) coveredCount.toFloat() / sampleCount else 0f,
+            totalDecisionCount = totalDecisionCount,
+            decisionCountMatchesSamples = totalDecisionCount == sampleCount,
+            labeledCandidateCount = labeled.size,
+            targetUnknownCount = sampleCount - labeled.size - excludedAlreadyDeepCount,
+            excludedAlreadyDeepCount = excludedAlreadyDeepCount,
+            actualDeepSoonCount = actualDeepSoonCount,
+            trueSmartCount = trueSmartCount,
+            falseSmartCount = falseSmartCount,
+            missedSmartCount = missedSmartCount,
+            smartPrecision = smart.takeIf { it.isNotEmpty() }?.let {
+                trueSmartCount.toFloat() / it.size
+            },
+            smartRecall = actualDeepSoonCount.takeIf { it > 0 }?.let {
+                trueSmartCount.toFloat() / it
+            },
+            labeledUtility = labeled.takeIf { it.isNotEmpty() }?.let {
+                utilitySum.toFloat() / it.size
+            },
+            fullSampleUtility = if (sampleCount > 0) utilitySum.toFloat() / sampleCount else 0f,
+            sessionUtilityMean = sessionUtilities.takeIf { it.isNotEmpty() }?.average()?.toFloat(),
+            sessionUtilityMin = sessionUtilities.minOrNull(),
+            sessionUtilityMax = sessionUtilities.maxOrNull(),
         )
     }
 
@@ -548,12 +779,51 @@ class AndroidSequenceModelValidator(
         return indices.maxOfOrNull { index -> abs(this[index] - other[index]) } ?: 0f
     }
 
+    private fun benchmarkInference(
+        label: String,
+        iterations: Int,
+        warmupIterations: Int,
+        block: () -> Float,
+    ): InferenceBenchmarkResult {
+        repeat(warmupIterations) { block() }
+        var sink = 0f
+        val elapsedNs = LongArray(iterations)
+        repeat(iterations) { index ->
+            val startedAt = System.nanoTime()
+            sink += block()
+            elapsedNs[index] = System.nanoTime() - startedAt
+        }
+        require(sink.isFinite()) { "$label benchmark produced a non-finite result." }
+        val elapsedMs = elapsedNs.map { it / NANOS_PER_MILLISECOND }
+        return InferenceBenchmarkResult(
+            label = label,
+            meanMs = elapsedMs.average().toFloat(),
+            p50Ms = elapsedMs.percentile(0.50f),
+            p95Ms = elapsedMs.percentile(0.95f),
+            minMs = elapsedMs.minOrNull() ?: 0f,
+            maxMs = elapsedMs.maxOrNull() ?: 0f,
+        )
+    }
+
+    private fun List<Float>.percentile(percentile: Float): Float {
+        if (isEmpty()) {
+            return 0f
+        }
+        val sorted = sorted()
+        val index = ((sorted.size - 1) * percentile).roundToInt().coerceIn(sorted.indices)
+        return sorted[index]
+    }
+
     private data class AlarmWindowCandidateResult(
         val candidateTime: Instant,
         val minutesBeforeDeadline: Float,
         val gruScore: Float,
         val tabularScore: Float,
         val result: DecisionPolicyResult,
+        val actualDeepSoon: Boolean?,
+        val excludedAlreadyDeep: Boolean,
+        val sequenceUnknownRatio: Float,
+        val inputIsFinite: Boolean,
     ) {
         fun toSummary(): AlarmWindowCandidateSummary =
             AlarmWindowCandidateSummary(
@@ -564,8 +834,51 @@ class AndroidSequenceModelValidator(
                 combinedScore = result.score,
                 decision = result.decision,
                 reason = result.reason,
+                actualDeepSoon = actualDeepSoon,
+                excludedAlreadyDeep = excludedAlreadyDeep,
+                sequenceUnknownRatio = sequenceUnknownRatio,
             )
     }
+
+    private data class PolicyObservation(
+        val result: DecisionPolicyResult,
+        val actualDeepSoon: Boolean?,
+        val excludedAlreadyDeep: Boolean,
+        val sessionId: String?,
+    )
+
+    private fun actualDeepSoonOrNull(
+        session: SleepSession,
+        candidateTime: Instant,
+    ): Boolean? {
+        val currentStage = stageAt(session, candidateTime) ?: return null
+        if (currentStage == SleepStageType.Unknown) {
+            return null
+        }
+        if (currentStage == SleepStageType.Deep) {
+            return null
+        }
+        val horizonEnd = candidateTime.plus(Duration.ofMinutes(TARGET_HORIZON_MINUTES.toLong()))
+        val horizonHasCoverage = (0..TARGET_HORIZON_MINUTES).all { offset ->
+            val stage = stageAt(session, candidateTime.plus(Duration.ofMinutes(offset.toLong())))
+            stage != null && stage != SleepStageType.Unknown
+        }
+        if (!horizonHasCoverage) {
+            return null
+        }
+        return session.stages.any { stage ->
+            stage.type == SleepStageType.Deep &&
+                stage.startTime > candidateTime &&
+                stage.startTime <= horizonEnd
+        }
+    }
+
+    private fun stageAt(
+        session: SleepSession,
+        time: Instant,
+    ): SleepStageType? = session.stages
+        .firstOrNull { stage -> time >= stage.startTime && time < stage.endTime }
+        ?.type
 
     private fun targetDeadlineForSession(
         session: SleepSession,
@@ -588,7 +901,11 @@ class AndroidSequenceModelValidator(
         const val LATE_WINDOW_MINUTES = 10f
         const val TOP_ALARM_WINDOW_CANDIDATE_COUNT = 3
         const val RECENT_POLICY_WINDOW_DAYS = 30
+        const val TARGET_HORIZON_MINUTES = 10
         const val WEEKDAY_WAKE_HOUR = 7
         const val WEEKEND_WAKE_HOUR = 9
+        const val DEFAULT_BENCHMARK_ITERATIONS = 500
+        const val DEFAULT_BENCHMARK_WARMUP_ITERATIONS = 50
+        const val NANOS_PER_MILLISECOND = 1_000_000f
     }
 }

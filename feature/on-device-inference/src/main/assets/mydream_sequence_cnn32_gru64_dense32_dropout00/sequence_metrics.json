@@ -1,0 +1,199 @@
+{
+  "alarm_predictions": {
+    "file": "/content/drive/MyDrive/mydream_latest/out/latest_fixed_wake_policy/sequence_experiments/expanded/cnn32_gru64_dense32_dropout00/alarm_predictions_long.csv",
+    "positive_count": 844,
+    "positive_ratio": 0.05478,
+    "rows": 15407,
+    "sequence_dir": "/content/drive/MyDrive/mydream_latest/out/latest_fixed_wake_policy/sequence_60m_alarm"
+  },
+  "architecture": {
+    "context_units": 16,
+    "conv_filters": 32,
+    "conv_kernel_size": 5,
+    "dense_units": 32,
+    "dropout": 0.0,
+    "embedding_dim": 8,
+    "hidden_units": 64,
+    "learning_rate": 0.001,
+    "model_type": "cnn_gru",
+    "tcn_dilations": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "transformer_ff_dim": 128,
+    "transformer_heads": 4,
+    "transformer_layers": 2
+  },
+  "class_weight": {
+    "0": 0.5668543324920727,
+    "1": 4.239473429484077
+  },
+  "history": {
+    "loss": [
+      0.43773093819618225,
+      0.3813142776489258,
+      0.36792322993278503,
+      0.361123263835907,
+      0.3564869463443756,
+      0.3527660071849823,
+      0.34953176975250244
+    ],
+    "pr_auc": [
+      0.44878971576690674,
+      0.5179077386856079,
+      0.5390868186950684,
+      0.5483614802360535,
+      0.5535014271736145,
+      0.5575311183929443,
+      0.5622995495796204
+    ],
+    "precision": [
+      0.27642300724983215,
+      0.3331148028373718,
+      0.34225451946258545,
+      0.34546810388565063,
+      0.3472698926925659,
+      0.3492365777492523,
+      0.3509782552719116
+    ],
+    "recall": [
+      0.8766818046569824,
+      0.8852967023849487,
+      0.8937179446220398,
+      0.8965250253677368,
+      0.9012680053710938,
+      0.9055270552635193,
+      0.9081405401229858
+    ],
+    "roc_auc": [
+      0.8682124614715576,
+      0.89991694688797,
+      0.9068887233734131,
+      0.9102312922477722,
+      0.912354588508606,
+      0.9140576720237732,
+      0.9155057072639465
+    ],
+    "val_loss": [
+      0.30515581369400024,
+      0.3097212016582489,
+      0.31629160046577454,
+      0.3180917501449585,
+      0.3208419978618622,
+      0.32187211513519287,
+      0.3231731057167053
+    ],
+    "val_pr_auc": [
+      0.5216183662414551,
+      0.551007091999054,
+      0.5584222674369812,
+      0.5575011968612671,
+      0.5539799332618713,
+      0.5480857491493225,
+      0.5440548658370972
+    ],
+    "val_precision": [
+      0.45849213004112244,
+      0.45976483821868896,
+      0.4535121023654938,
+      0.45158031582832336,
+      0.4480491578578949,
+      0.44832542538642883,
+      0.4461870491504669
+    ],
+    "val_recall": [
+      0.6670684814453125,
+      0.7258920073509216,
+      0.7502411007881165,
+      0.7543394565582275,
+      0.7557859420776367,
+      0.7519286274909973,
+      0.7475891709327698
+    ],
+    "val_roc_auc": [
+      0.8921948075294495,
+      0.8988919854164124,
+      0.8993934988975525,
+      0.8991994857788086,
+      0.8981632590293884,
+      0.8968755006790161,
+      0.8958513736724854
+    ]
+  },
+  "model": "cnn_gru_sequence_model",
+  "output_dir": "/content/drive/MyDrive/mydream_latest/out/latest_fixed_wake_policy/sequence_experiments/expanded/cnn32_gru64_dense32_dropout00",
+  "sequence_dir": "/content/drive/MyDrive/mydream_latest/out/latest_fixed_wake_policy/sequence_60m",
+  "target": "label_deep_soon",
+  "test": {
+    "accuracy": 0.851401,
+    "balanced_accuracy": 0.803654,
+    "confusion_matrix": [
+      [
+        22930,
+        3363
+      ],
+      [
+        1240,
+        3443
+      ]
+    ],
+    "f1": 0.599356,
+    "positive_count": 4683,
+    "positive_rate": 0.151182,
+    "pr_auc": 0.574617,
+    "precision": 0.505877,
+    "recall": 0.735212,
+    "roc_auc": 0.904266,
+    "rows": 30976,
+    "threshold": 0.5
+  },
+  "threshold": 0.5,
+  "train": {
+    "accuracy": 0.794979,
+    "balanced_accuracy": 0.8328,
+    "confusion_matrix": [
+      [
+        60522,
+        16743
+      ],
+      [
+        1216,
+        9115
+      ]
+    ],
+    "f1": 0.503744,
+    "positive_count": 10331,
+    "positive_rate": 0.117939,
+    "pr_auc": 0.54754,
+    "precision": 0.352502,
+    "recall": 0.882296,
+    "roc_auc": 0.909248,
+    "rows": 87596,
+    "threshold": 0.5
+  },
+  "validation": {
+    "accuracy": 0.83931,
+    "balanced_accuracy": 0.801981,
+    "confusion_matrix": [
+      [
+        21886,
+        3750
+      ],
+      [
+        1036,
+        3112
+      ]
+    ],
+    "f1": 0.565304,
+    "positive_count": 4148,
+    "positive_rate": 0.139269,
+    "pr_auc": 0.558629,
+    "precision": 0.453512,
+    "recall": 0.750241,
+    "roc_auc": 0.899374,
+    "rows": 29784,
+    "threshold": 0.5
+  }
+}
