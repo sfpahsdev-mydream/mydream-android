@@ -1,0 +1,178 @@
+{
+  "generated_at_local": "2026-06-01T22:59:41+09:00",
+  "generated_at_utc": "2026-06-01T13:59:41Z",
+  "model_count": 17,
+  "models": [
+    {
+      "conversion_model": "rebuilt_tflite_friendly",
+      "float16_size_bytes": 243856,
+      "float32_size_bytes": 276132,
+      "generated_at_local": "2026-06-01T22:52:08+09:00",
+      "generated_at_utc": "2026-06-01T13:52:08Z",
+      "model_name": "gru64_dense32_dropout00",
+      "model_type": "gru",
+      "source_model_mtime_utc": "2026-06-01T07:57:51Z"
+    },
+    {
+      "conversion_model": "rebuilt_tflite_friendly",
+      "float16_size_bytes": 337648,
+      "float32_size_bytes": 463716,
+      "generated_at_local": "2026-06-01T22:52:37+09:00",
+      "generated_at_utc": "2026-06-01T13:52:37Z",
+      "model_name": "gru128_dense64_dropout10",
+      "model_type": "gru",
+      "source_model_mtime_utc": "2026-06-01T07:59:18Z"
+    },
+    {
+      "conversion_model": "rebuilt_tflite_friendly",
+      "float16_size_bytes": 703408,
+      "float32_size_bytes": 1195236,
+      "generated_at_local": "2026-06-01T22:53:06+09:00",
+      "generated_at_utc": "2026-06-01T13:53:06Z",
+      "model_name": "gru256_dense128_dropout10",
+      "model_type": "gru",
+      "source_model_mtime_utc": "2026-06-01T08:00:37Z"
+    },
+    {
+      "conversion_model": "rebuilt_tflite_friendly",
+      "float16_size_bytes": 418176,
+      "float32_size_bytes": 622488,
+      "generated_at_local": "2026-06-01T22:53:37+09:00",
+      "generated_at_utc": "2026-06-01T13:53:37Z",
+      "model_name": "cnn64_gru128_dense128_dropout10",
+      "model_type": "cnn_gru",
+      "source_model_mtime_utc": "2026-06-01T08:01:53Z"
+    },
+    {
+      "conversion_model": "rebuilt_tflite_friendly",
+      "float16_size_bytes": 796544,
+      "float32_size_bytes": 1379224,
+      "generated_at_local": "2026-06-01T22:54:08+09:00",
+      "generated_at_utc": "2026-06-01T13:54:08Z",
+      "model_name": "cnn64_gru256_dense128_dropout10",
+      "model_type": "cnn_gru",
+      "source_model_mtime_utc": "2026-06-01T08:03:21Z"
+    },
+    {
+      "conversion_model": "saved_model_direct",
+      "float16_size_bytes": 1392004,
+      "float32_size_bytes": 2755872,
+      "generated_at_local": "2026-06-01T22:54:38+09:00",
+      "generated_at_utc": "2026-06-01T13:54:38Z",
+      "model_name": "tcn128_dense128_dropout10",
+      "model_type": "tcn",
+      "source_model_mtime_utc": "2026-06-01T08:05:07Z"
+    },
+    {
+      "conversion_model": "saved_model_direct",
+      "float16_size_bytes": 5361540,
+      "float32_size_bytes": 10694944,
+      "generated_at_local": "2026-06-01T22:54:55+09:00",
+      "generated_at_utc": "2026-06-01T13:54:55Z",
+      "model_name": "tcn256_dense128_dropout10",
+      "model_type": "tcn",
+      "source_model_mtime_utc": "2026-06-01T08:08:42Z"
+    },
+    {
+      "conversion_model": "saved_model_direct",
+      "float16_size_bytes": 637536,
+      "float32_size_bytes": 1230992,
+      "generated_at_local": "2026-06-01T22:55:24+09:00",
+      "generated_at_utc": "2026-06-01T13:55:24Z",
+      "model_name": "transformer128_dense128_dropout10",
+      "model_type": "transformer",
+      "source_model_mtime_utc": "2026-06-01T08:10:52Z"
+    },
+    {
+      "conversion_model": "saved_model_direct",
+      "float16_size_bytes": 2266720,
+      "float32_size_bytes": 4489360,
+      "generated_at_local": "2026-06-01T22:55:46+09:00",
+      "generated_at_utc": "2026-06-01T13:55:46Z",
+      "model_name": "transformer256_2layer_dense128_dropout10",
+      "model_type": "transformer",
+      "source_model_mtime_utc": "2026-06-01T08:14:10Z"
+    },
+    {
+      "conversion_model": "rebuilt_tflite_friendly",
+      "float16_size_bytes": 338652,
+      "float32_size_bytes": 499204,
+      "generated_at_local": "2026-06-01T22:56:11+09:00",
+      "generated_at_utc": "2026-06-01T13:56:11Z",
+      "model_name": "lstm128_dense64_dropout10",
+      "model_type": "lstm",
+      "source_model_mtime_utc": "2026-06-01T08:15:36Z"
+    },
+    {
+      "conversion_model": "rebuilt_tflite_friendly",
+      "float16_size_bytes": 804252,
+      "float32_size_bytes": 1430404,
+      "generated_at_local": "2026-06-01T22:56:37+09:00",
+      "generated_at_utc": "2026-06-01T13:56:37Z",
+      "model_name": "lstm256_dense128_dropout10",
+      "model_type": "lstm",
+      "source_model_mtime_utc": "2026-06-01T08:16:50Z"
+    },
+    {
+      "conversion_model": "rebuilt_tflite_friendly",
+      "float16_size_bytes": 744692,
+      "float32_size_bytes": 1039032,
+      "generated_at_local": "2026-06-01T22:57:14+09:00",
+      "generated_at_utc": "2026-06-01T13:57:14Z",
+      "model_name": "bigru128_dense128_dropout10",
+      "model_type": "bigru",
+      "source_model_mtime_utc": "2026-06-01T08:18:31Z"
+    },
+    {
+      "conversion_model": "rebuilt_tflite_friendly",
+      "float16_size_bytes": 748368,
+      "float32_size_bytes": 1042956,
+      "generated_at_local": "2026-06-01T22:58:00+09:00",
+      "generated_at_utc": "2026-06-01T13:58:00Z",
+      "model_name": "bigru_attention128_dense128_dropout10",
+      "model_type": "bigru_attention",
+      "source_model_mtime_utc": "2026-06-01T08:20:29Z"
+    },
+    {
+      "conversion_model": "rebuilt_tflite_friendly",
+      "float16_size_bytes": 1393796,
+      "float32_size_bytes": 2757652,
+      "generated_at_local": "2026-06-01T22:58:38+09:00",
+      "generated_at_utc": "2026-06-01T13:58:38Z",
+      "model_name": "tcn128_attention_dense128_dropout10",
+      "model_type": "tcn_attention",
+      "source_model_mtime_utc": "2026-06-01T08:22:04Z"
+    },
+    {
+      "conversion_model": "saved_model_direct",
+      "float16_size_bytes": 117140,
+      "float32_size_bytes": 218616,
+      "generated_at_local": "2026-06-01T22:58:52+09:00",
+      "generated_at_utc": "2026-06-01T13:58:52Z",
+      "model_name": "inception64_dense128_dropout10",
+      "model_type": "inception_time",
+      "source_model_mtime_utc": "2026-06-01T08:23:10Z"
+    },
+    {
+      "conversion_model": "saved_model_direct",
+      "float16_size_bytes": 2004892,
+      "float32_size_bytes": 3940816,
+      "generated_at_local": "2026-06-01T22:59:08+09:00",
+      "generated_at_utc": "2026-06-01T13:59:08Z",
+      "model_name": "transformer128_tcn_dense128_dropout10",
+      "model_type": "transformer_tcn",
+      "source_model_mtime_utc": "2026-06-01T08:26:20Z"
+    },
+    {
+      "conversion_model": "saved_model_direct",
+      "float16_size_bytes": 989956,
+      "float32_size_bytes": 1931136,
+      "generated_at_local": "2026-06-01T22:59:31+09:00",
+      "generated_at_utc": "2026-06-01T13:59:31Z",
+      "model_name": "patchtst128_dense128_dropout10",
+      "model_type": "patchtst_lite",
+      "source_model_mtime_utc": "2026-06-01T08:28:09Z"
+    }
+  ],
+  "profile_root": "/mnt/c/Users/devSh/Documents/home-lab/mydream-training-evaluation/out/latest_fixed_wake_policy"
+}

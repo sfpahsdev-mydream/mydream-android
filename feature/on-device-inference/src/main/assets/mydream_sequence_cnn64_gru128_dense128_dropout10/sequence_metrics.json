@@ -1,0 +1,179 @@
+{
+  "alarm_predictions": {
+    "file": "/mnt/c/Users/devSh/Documents/home-lab/mydream-training-evaluation/out/latest_fixed_wake_policy/sequence_experiments/all/cnn64_gru128_dense128_dropout10/alarm_predictions_long.csv",
+    "positive_count": 844,
+    "positive_ratio": 0.05478,
+    "rows": 15407,
+    "sequence_dir": "/mnt/c/Users/devSh/Documents/home-lab/mydream-training-evaluation/out/latest_fixed_wake_policy/sequence_60m_alarm"
+  },
+  "architecture": {
+    "context_units": 64,
+    "conv_filters": 64,
+    "conv_kernel_size": 5,
+    "dense_units": 128,
+    "dropout": 0.1,
+    "embedding_dim": 8,
+    "hidden_units": 128,
+    "learning_rate": 0.001,
+    "model_type": "cnn_gru",
+    "tcn_dilations": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "transformer_ff_dim": 128,
+    "transformer_heads": 4,
+    "transformer_layers": 2
+  },
+  "class_weight": {
+    "0": 0.5668543324920727,
+    "1": 4.239473429484077
+  },
+  "history": {
+    "loss": [
+      0.40878668427467346,
+      0.3652231693267822,
+      0.3550499379634857,
+      0.34650424122810364,
+      0.33893734216690063
+    ],
+    "pr_auc": [
+      0.47744476795196533,
+      0.5407348871231079,
+      0.5572438836097717,
+      0.5708889961242676,
+      0.5806863307952881
+    ],
+    "precision": [
+      0.311800092458725,
+      0.3409920632839203,
+      0.3493821918964386,
+      0.35647228360176086,
+      0.36418652534484863
+    ],
+    "recall": [
+      0.8731971979141235,
+      0.8949762582778931,
+      0.9004936814308167,
+      0.904171884059906,
+      0.9087213277816772
+    ],
+    "roc_auc": [
+      0.8857792019844055,
+      0.9084295630455017,
+      0.9132136702537537,
+      0.9168990850448608,
+      0.9203408360481262
+    ],
+    "val_loss": [
+      0.3051370680332184,
+      0.32101133465766907,
+      0.3255872428417206,
+      0.32095903158187866,
+      0.3287878930568695
+    ],
+    "val_pr_auc": [
+      0.5455512404441833,
+      0.539500892162323,
+      0.5307410359382629,
+      0.5339860916137695,
+      0.534725546836853
+    ],
+    "val_precision": [
+      0.4583984911441803,
+      0.44851863384246826,
+      0.44576022028923035,
+      0.4558490514755249,
+      0.4522821605205536
+    ],
+    "val_recall": [
+      0.7066056132316589,
+      0.7372227311134338,
+      0.7350530624389648,
+      0.7280617356300354,
+      0.7357763051986694
+    ],
+    "val_roc_auc": [
+      0.8951454758644104,
+      0.8934903144836426,
+      0.8920755982398987,
+      0.8917332291603088,
+      0.8901072144508362
+    ]
+  },
+  "model": "cnn_gru_sequence_model",
+  "output_dir": "/mnt/c/Users/devSh/Documents/home-lab/mydream-training-evaluation/out/latest_fixed_wake_policy/sequence_experiments/all/cnn64_gru128_dense128_dropout10",
+  "sequence_dir": "/mnt/c/Users/devSh/Documents/home-lab/mydream-training-evaluation/out/latest_fixed_wake_policy/sequence_60m",
+  "target": "label_deep_soon",
+  "test": {
+    "accuracy": 0.856211,
+    "balanced_accuracy": 0.79701,
+    "confusion_matrix": [
+      [
+        23187,
+        3106
+      ],
+      [
+        1348,
+        3335
+      ]
+    ],
+    "f1": 0.599604,
+    "positive_count": 4683,
+    "positive_rate": 0.151182,
+    "pr_auc": 0.57396,
+    "precision": 0.517777,
+    "recall": 0.71215,
+    "roc_auc": 0.905148,
+    "rows": 30976,
+    "threshold": 0.5
+  },
+  "threshold": 0.5,
+  "train": {
+    "accuracy": 0.804089,
+    "balanced_accuracy": 0.825596,
+    "confusion_matrix": [
+      [
+        61615,
+        15650
+      ],
+      [
+        1511,
+        8820
+      ]
+    ],
+    "f1": 0.506882,
+    "positive_count": 10331,
+    "positive_rate": 0.117939,
+    "pr_auc": 0.524054,
+    "precision": 0.360441,
+    "recall": 0.853741,
+    "roc_auc": 0.903948,
+    "rows": 87596,
+    "threshold": 0.5
+  },
+  "validation": {
+    "accuracy": 0.842869,
+    "balanced_accuracy": 0.785761,
+    "confusion_matrix": [
+      [
+        22173,
+        3463
+      ],
+      [
+        1217,
+        2931
+      ]
+    ],
+    "f1": 0.556061,
+    "positive_count": 4148,
+    "positive_rate": 0.139269,
+    "pr_auc": 0.545976,
+    "precision": 0.458398,
+    "recall": 0.706606,
+    "roc_auc": 0.895166,
+    "rows": 29784,
+    "threshold": 0.5
+  }
+}

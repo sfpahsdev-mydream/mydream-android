@@ -1,0 +1,189 @@
+{
+  "alarm_predictions": {
+    "file": "/mnt/c/Users/devSh/Documents/home-lab/mydream-training-evaluation/out/latest_fixed_wake_policy/sequence_experiments/all/gru128_dense64_dropout10/alarm_predictions_long.csv",
+    "positive_count": 844,
+    "positive_ratio": 0.05478,
+    "rows": 15407,
+    "sequence_dir": "/mnt/c/Users/devSh/Documents/home-lab/mydream-training-evaluation/out/latest_fixed_wake_policy/sequence_60m_alarm"
+  },
+  "architecture": {
+    "context_units": 32,
+    "conv_filters": 16,
+    "conv_kernel_size": 5,
+    "dense_units": 64,
+    "dropout": 0.1,
+    "embedding_dim": 8,
+    "hidden_units": 128,
+    "learning_rate": 0.001,
+    "model_type": "gru",
+    "tcn_dilations": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "transformer_ff_dim": 128,
+    "transformer_heads": 4,
+    "transformer_layers": 2
+  },
+  "class_weight": {
+    "0": 0.5668543324920727,
+    "1": 4.239473429484077
+  },
+  "history": {
+    "loss": [
+      0.43084773421287537,
+      0.37538185715675354,
+      0.36341995000839233,
+      0.35642117261886597,
+      0.35170960426330566,
+      0.34709763526916504
+    ],
+    "pr_auc": [
+      0.4441189169883728,
+      0.5162495374679565,
+      0.5394999384880066,
+      0.5534414649009705,
+      0.5604701042175293,
+      0.5675222873687744
+    ],
+    "precision": [
+      0.288198322057724,
+      0.33612003922462463,
+      0.34438785910606384,
+      0.35052478313446045,
+      0.35256555676460266,
+      0.35772109031677246
+    ],
+    "recall": [
+      0.8743587136268616,
+      0.8912012577056885,
+      0.896621823310852,
+      0.9019455909729004,
+      0.9032039642333984,
+      0.9067854285240173
+    ],
+    "roc_auc": [
+      0.8719620704650879,
+      0.9036754965782166,
+      0.909517228603363,
+      0.9127018451690674,
+      0.9148717522621155,
+      0.91695237159729
+    ],
+    "val_loss": [
+      0.2906722128391266,
+      0.29957136511802673,
+      0.30706748366355896,
+      0.31025028228759766,
+      0.3154696524143219,
+      0.3165723979473114
+    ],
+    "val_pr_auc": [
+      0.5536463856697083,
+      0.5646124482154846,
+      0.5591049790382385,
+      0.5503576993942261,
+      0.5474881529808044,
+      0.545476496219635
+    ],
+    "val_precision": [
+      0.4859166741371155,
+      0.4671155512332916,
+      0.4586363732814789,
+      0.4571645259857178,
+      0.4543006718158722,
+      0.45888033509254456
+    ],
+    "val_recall": [
+      0.6945515871047974,
+      0.7191417813301086,
+      0.7297492623329163,
+      0.7268562912940979,
+      0.7321600914001465,
+      0.7331243753433228
+    ],
+    "val_roc_auc": [
+      0.9023400545120239,
+      0.9004415273666382,
+      0.8990136981010437,
+      0.8964508175849915,
+      0.8957126140594482,
+      0.8946027159690857
+    ]
+  },
+  "model": "gru_sequence_model",
+  "output_dir": "/mnt/c/Users/devSh/Documents/home-lab/mydream-training-evaluation/out/latest_fixed_wake_policy/sequence_experiments/all/gru128_dense64_dropout10",
+  "sequence_dir": "/mnt/c/Users/devSh/Documents/home-lab/mydream-training-evaluation/out/latest_fixed_wake_policy/sequence_60m",
+  "target": "label_deep_soon",
+  "test": {
+    "accuracy": 0.859633,
+    "balanced_accuracy": 0.802097,
+    "confusion_matrix": [
+      [
+        23258,
+        3035
+      ],
+      [
+        1313,
+        3370
+      ]
+    ],
+    "f1": 0.607864,
+    "positive_count": 4683,
+    "positive_rate": 0.151182,
+    "pr_auc": 0.584408,
+    "precision": 0.526151,
+    "recall": 0.719624,
+    "roc_auc": 0.906751,
+    "rows": 30976,
+    "threshold": 0.5
+  },
+  "threshold": 0.5,
+  "train": {
+    "accuracy": 0.805824,
+    "balanced_accuracy": 0.832659,
+    "confusion_matrix": [
+      [
+        61622,
+        15643
+      ],
+      [
+        1366,
+        8965
+      ]
+    ],
+    "f1": 0.51318,
+    "positive_count": 10331,
+    "positive_rate": 0.117939,
+    "pr_auc": 0.532759,
+    "precision": 0.364312,
+    "recall": 0.867777,
+    "roc_auc": 0.908366,
+    "rows": 87596,
+    "threshold": 0.5
+  },
+  "validation": {
+    "accuracy": 0.846629,
+    "balanced_accuracy": 0.793199,
+    "confusion_matrix": [
+      [
+        22233,
+        3403
+      ],
+      [
+        1165,
+        2983
+      ]
+    ],
+    "f1": 0.566357,
+    "positive_count": 4148,
+    "positive_rate": 0.139269,
+    "pr_auc": 0.565257,
+    "precision": 0.467116,
+    "recall": 0.719142,
+    "roc_auc": 0.900569,
+    "rows": 29784,
+    "threshold": 0.5
+  }
+}

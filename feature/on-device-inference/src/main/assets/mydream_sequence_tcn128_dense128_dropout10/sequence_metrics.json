@@ -1,0 +1,199 @@
+{
+  "alarm_predictions": {
+    "file": "/mnt/c/Users/devSh/Documents/home-lab/mydream-training-evaluation/out/latest_fixed_wake_policy/sequence_experiments/all/tcn128_dense128_dropout10/alarm_predictions_long.csv",
+    "positive_count": 844,
+    "positive_ratio": 0.05478,
+    "rows": 15407,
+    "sequence_dir": "/mnt/c/Users/devSh/Documents/home-lab/mydream-training-evaluation/out/latest_fixed_wake_policy/sequence_60m_alarm"
+  },
+  "architecture": {
+    "context_units": 64,
+    "conv_filters": 128,
+    "conv_kernel_size": 5,
+    "dense_units": 128,
+    "dropout": 0.1,
+    "embedding_dim": 8,
+    "hidden_units": 128,
+    "learning_rate": 0.001,
+    "model_type": "tcn",
+    "tcn_dilations": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "transformer_ff_dim": 128,
+    "transformer_heads": 4,
+    "transformer_layers": 2
+  },
+  "class_weight": {
+    "0": 0.5668543324920727,
+    "1": 4.239473429484077
+  },
+  "history": {
+    "loss": [
+      0.4463454782962799,
+      0.3778083920478821,
+      0.3584776818752289,
+      0.34300491213798523,
+      0.3251567780971527,
+      0.3046987056732178,
+      0.2796829342842102
+    ],
+    "pr_auc": [
+      0.44380149245262146,
+      0.5318218469619751,
+      0.5605000853538513,
+      0.5826500654220581,
+      0.6142142415046692,
+      0.6464373469352722,
+      0.6938066482543945
+    ],
+    "precision": [
+      0.3007398545742035,
+      0.33726099133491516,
+      0.3499470055103302,
+      0.3627740740776062,
+      0.3784230053424835,
+      0.39985641837120056,
+      0.42691344022750854
+    ],
+    "recall": [
+      0.838060200214386,
+      0.8810376524925232,
+      0.8950730562210083,
+      0.9033007621765137,
+      0.9095925092697144,
+      0.9165617823600769,
+      0.9221760034561157
+    ],
+    "roc_auc": [
+      0.8668721914291382,
+      0.9036023020744324,
+      0.9124720096588135,
+      0.919475793838501,
+      0.9276624917984009,
+      0.936232328414917,
+      0.946310818195343
+    ],
+    "val_loss": [
+      0.33985447883605957,
+      0.32508212327957153,
+      0.33123084902763367,
+      0.3187263011932373,
+      0.32135000824928284,
+      0.33360084891319275,
+      0.36750537157058716
+    ],
+    "val_pr_auc": [
+      0.4966844618320465,
+      0.5160828232765198,
+      0.5242894291877747,
+      0.5199310779571533,
+      0.5172699689865112,
+      0.5024029016494751,
+      0.4939000606536865
+    ],
+    "val_precision": [
+      0.43281954526901245,
+      0.4491311311721802,
+      0.4436033368110657,
+      0.46557939052581787,
+      0.4746069014072418,
+      0.4882277250289917,
+      0.48151126503944397
+    ],
+    "val_recall": [
+      0.6702024936676025,
+      0.6853905320167542,
+      0.7063645124435425,
+      0.6538090705871582,
+      0.6330761909484863,
+      0.5499035716056824,
+      0.5776277780532837
+    ],
+    "val_roc_auc": [
+      0.8720067143440247,
+      0.8824660181999207,
+      0.8839094042778015,
+      0.8819994330406189,
+      0.8779273629188538,
+      0.866262674331665,
+      0.8584043383598328
+    ]
+  },
+  "model": "tcn_sequence_model",
+  "output_dir": "/mnt/c/Users/devSh/Documents/home-lab/mydream-training-evaluation/out/latest_fixed_wake_policy/sequence_experiments/all/tcn128_dense128_dropout10",
+  "sequence_dir": "/mnt/c/Users/devSh/Documents/home-lab/mydream-training-evaluation/out/latest_fixed_wake_policy/sequence_60m",
+  "target": "label_deep_soon",
+  "test": {
+    "accuracy": 0.853048,
+    "balanced_accuracy": 0.789793,
+    "confusion_matrix": [
+      [
+        23150,
+        3143
+      ],
+      [
+        1409,
+        3274
+      ]
+    ],
+    "f1": 0.58991,
+    "positive_count": 4683,
+    "positive_rate": 0.151182,
+    "pr_auc": 0.576744,
+    "precision": 0.510207,
+    "recall": 0.699124,
+    "roc_auc": 0.899779,
+    "rows": 30976,
+    "threshold": 0.5
+  },
+  "threshold": 0.5,
+  "train": {
+    "accuracy": 0.809797,
+    "balanced_accuracy": 0.843422,
+    "confusion_matrix": [
+      [
+        61767,
+        15498
+      ],
+      [
+        1163,
+        9168
+      ]
+    ],
+    "f1": 0.523931,
+    "positive_count": 10331,
+    "positive_rate": 0.117939,
+    "pr_auc": 0.587025,
+    "precision": 0.371686,
+    "recall": 0.887426,
+    "roc_auc": 0.919336,
+    "rows": 87596,
+    "threshold": 0.5
+  },
+  "validation": {
+    "accuracy": 0.835717,
+    "balanced_accuracy": 0.781506,
+    "confusion_matrix": [
+      [
+        21961,
+        3675
+      ],
+      [
+        1218,
+        2930
+      ]
+    ],
+    "f1": 0.544964,
+    "positive_count": 4148,
+    "positive_rate": 0.139269,
+    "pr_auc": 0.524465,
+    "precision": 0.443603,
+    "recall": 0.706365,
+    "roc_auc": 0.884313,
+    "rows": 29784,
+    "threshold": 0.5
+  }
+}

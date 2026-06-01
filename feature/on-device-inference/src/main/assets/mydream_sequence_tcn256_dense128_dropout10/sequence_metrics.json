@@ -1,0 +1,209 @@
+{
+  "alarm_predictions": {
+    "file": "/mnt/c/Users/devSh/Documents/home-lab/mydream-training-evaluation/out/latest_fixed_wake_policy/sequence_experiments/all/tcn256_dense128_dropout10/alarm_predictions_long.csv",
+    "positive_count": 844,
+    "positive_ratio": 0.05478,
+    "rows": 15407,
+    "sequence_dir": "/mnt/c/Users/devSh/Documents/home-lab/mydream-training-evaluation/out/latest_fixed_wake_policy/sequence_60m_alarm"
+  },
+  "architecture": {
+    "context_units": 64,
+    "conv_filters": 256,
+    "conv_kernel_size": 5,
+    "dense_units": 128,
+    "dropout": 0.1,
+    "embedding_dim": 8,
+    "hidden_units": 256,
+    "learning_rate": 0.001,
+    "model_type": "tcn",
+    "tcn_dilations": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "transformer_ff_dim": 128,
+    "transformer_heads": 4,
+    "transformer_layers": 2
+  },
+  "class_weight": {
+    "0": 0.5668543324920727,
+    "1": 4.239473429484077
+  },
+  "history": {
+    "loss": [
+      0.4468908905982971,
+      0.37493541836738586,
+      0.35663747787475586,
+      0.3425798714160919,
+      0.3224377930164337,
+      0.2984810173511505,
+      0.27141937613487244,
+      0.24607928097248077
+    ],
+    "pr_auc": [
+      0.4470100998878479,
+      0.5310539603233337,
+      0.5634230375289917,
+      0.5798271894454956,
+      0.6083549857139587,
+      0.6528738141059875,
+      0.7050981521606445,
+      0.7470530867576599
+    ],
+    "precision": [
+      0.30117952823638916,
+      0.34078359603881836,
+      0.35116419196128845,
+      0.36278706789016724,
+      0.37930476665496826,
+      0.4040343761444092,
+      0.4322589337825775,
+      0.46655064821243286
+    ],
+    "recall": [
+      0.8329300284385681,
+      0.8840383291244507,
+      0.8934275507926941,
+      0.9021391868591309,
+      0.9093989133834839,
+      0.9189817309379578,
+      0.9255638122558594,
+      0.9342755079269409
+    ],
+    "roc_auc": [
+      0.8667957186698914,
+      0.9044562578201294,
+      0.9131193161010742,
+      0.9194055795669556,
+      0.928314745426178,
+      0.9388000965118408,
+      0.9493629932403564,
+      0.958454966545105
+    ],
+    "val_loss": [
+      0.31282681226730347,
+      0.33652034401893616,
+      0.326669305562973,
+      0.32715359330177307,
+      0.3273185193538666,
+      0.36114493012428284,
+      0.36742037534713745,
+      0.44220221042633057
+    ],
+    "val_pr_auc": [
+      0.4988318681716919,
+      0.5195817351341248,
+      0.5224435925483704,
+      0.5229308009147644,
+      0.5176827907562256,
+      0.5014749765396118,
+      0.4975411593914032,
+      0.4756894111633301
+    ],
+    "val_precision": [
+      0.46808120608329773,
+      0.435989648103714,
+      0.4468405842781067,
+      0.4527893662452698,
+      0.46174585819244385,
+      0.483139306306839,
+      0.4912929832935333,
+      0.481753408908844
+    ],
+    "val_recall": [
+      0.6169238090515137,
+      0.7307136058807373,
+      0.714320182800293,
+      0.7063645124435425,
+      0.6605592966079712,
+      0.5802796483039856,
+      0.5441176295280457,
+      0.5378495454788208
+    ],
+    "val_roc_auc": [
+      0.8760936260223389,
+      0.8851920962333679,
+      0.8861802220344543,
+      0.884396493434906,
+      0.8797962665557861,
+      0.861852765083313,
+      0.8562601208686829,
+      0.8372715711593628
+    ]
+  },
+  "model": "tcn_sequence_model",
+  "output_dir": "/mnt/c/Users/devSh/Documents/home-lab/mydream-training-evaluation/out/latest_fixed_wake_policy/sequence_experiments/all/tcn256_dense128_dropout10",
+  "sequence_dir": "/mnt/c/Users/devSh/Documents/home-lab/mydream-training-evaluation/out/latest_fixed_wake_policy/sequence_60m",
+  "target": "label_deep_soon",
+  "test": {
+    "accuracy": 0.854371,
+    "balanced_accuracy": 0.787677,
+    "confusion_matrix": [
+      [
+        23224,
+        3069
+      ],
+      [
+        1442,
+        3241
+      ]
+    ],
+    "f1": 0.589648,
+    "positive_count": 4683,
+    "positive_rate": 0.151182,
+    "pr_auc": 0.570177,
+    "precision": 0.513629,
+    "recall": 0.692078,
+    "roc_auc": 0.899135,
+    "rows": 30976,
+    "threshold": 0.5
+  },
+  "threshold": 0.5,
+  "train": {
+    "accuracy": 0.822629,
+    "balanced_accuracy": 0.851953,
+    "confusion_matrix": [
+      [
+        62861,
+        14404
+      ],
+      [
+        1133,
+        9198
+      ]
+    ],
+    "f1": 0.542127,
+    "positive_count": 10331,
+    "positive_rate": 0.117939,
+    "pr_auc": 0.605932,
+    "precision": 0.389713,
+    "recall": 0.89033,
+    "roc_auc": 0.92604,
+    "rows": 87596,
+    "threshold": 0.5
+  },
+  "validation": {
+    "accuracy": 0.840216,
+    "balanced_accuracy": 0.784119,
+    "confusion_matrix": [
+      [
+        22095,
+        3541
+      ],
+      [
+        1218,
+        2930
+      ]
+    ],
+    "f1": 0.551841,
+    "positive_count": 4148,
+    "positive_rate": 0.139269,
+    "pr_auc": 0.523305,
+    "precision": 0.452789,
+    "recall": 0.706365,
+    "roc_auc": 0.884991,
+    "rows": 29784,
+    "threshold": 0.5
+  }
+}

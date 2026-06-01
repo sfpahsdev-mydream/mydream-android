@@ -36,19 +36,84 @@ object SequenceModelContract {
             assetDir = "mydream_sequence_gru64_dense32_dropout00",
         ),
         SequenceModelAsset(
-            modelName = "tcn64_dense32_dropout00",
-            modelType = "tcn",
-            assetDir = "mydream_sequence_tcn64_dense32_dropout00",
+            modelName = "gru128_dense64_dropout10",
+            modelType = "gru",
+            assetDir = "mydream_sequence_gru128_dense64_dropout10",
         ),
         SequenceModelAsset(
-            modelName = "transformer64_dense32_dropout10",
-            modelType = "transformer",
-            assetDir = "mydream_sequence_transformer64_dense32_dropout10",
+            modelName = "gru256_dense128_dropout10",
+            modelType = "gru",
+            assetDir = "mydream_sequence_gru256_dense128_dropout10",
         ),
         SequenceModelAsset(
-            modelName = "cnn32_gru64_dense32_dropout00",
+            modelName = "cnn64_gru128_dense128_dropout10",
             modelType = "cnn_gru",
-            assetDir = "mydream_sequence_cnn32_gru64_dense32_dropout00",
+            assetDir = "mydream_sequence_cnn64_gru128_dense128_dropout10",
+        ),
+        SequenceModelAsset(
+            modelName = "cnn64_gru256_dense128_dropout10",
+            modelType = "cnn_gru",
+            assetDir = "mydream_sequence_cnn64_gru256_dense128_dropout10",
+        ),
+        SequenceModelAsset(
+            modelName = "tcn128_dense128_dropout10",
+            modelType = "tcn",
+            assetDir = "mydream_sequence_tcn128_dense128_dropout10",
+        ),
+        SequenceModelAsset(
+            modelName = "tcn256_dense128_dropout10",
+            modelType = "tcn",
+            assetDir = "mydream_sequence_tcn256_dense128_dropout10",
+        ),
+        SequenceModelAsset(
+            modelName = "transformer128_dense128_dropout10",
+            modelType = "transformer",
+            assetDir = "mydream_sequence_transformer128_dense128_dropout10",
+        ),
+        SequenceModelAsset(
+            modelName = "transformer256_2layer_dense128_dropout10",
+            modelType = "transformer",
+            assetDir = "mydream_sequence_transformer256_2layer_dense128_dropout10",
+        ),
+        SequenceModelAsset(
+            modelName = "lstm128_dense64_dropout10",
+            modelType = "lstm",
+            assetDir = "mydream_sequence_lstm128_dense64_dropout10",
+        ),
+        SequenceModelAsset(
+            modelName = "lstm256_dense128_dropout10",
+            modelType = "lstm",
+            assetDir = "mydream_sequence_lstm256_dense128_dropout10",
+        ),
+        SequenceModelAsset(
+            modelName = "bigru128_dense128_dropout10",
+            modelType = "bigru",
+            assetDir = "mydream_sequence_bigru128_dense128_dropout10",
+        ),
+        SequenceModelAsset(
+            modelName = "bigru_attention128_dense128_dropout10",
+            modelType = "bigru_attention",
+            assetDir = "mydream_sequence_bigru_attention128_dense128_dropout10",
+        ),
+        SequenceModelAsset(
+            modelName = "tcn128_attention_dense128_dropout10",
+            modelType = "tcn_attention",
+            assetDir = "mydream_sequence_tcn128_attention_dense128_dropout10",
+        ),
+        SequenceModelAsset(
+            modelName = "inception64_dense128_dropout10",
+            modelType = "inception_time",
+            assetDir = "mydream_sequence_inception64_dense128_dropout10",
+        ),
+        SequenceModelAsset(
+            modelName = "transformer128_tcn_dense128_dropout10",
+            modelType = "transformer_tcn",
+            assetDir = "mydream_sequence_transformer128_tcn_dense128_dropout10",
+        ),
+        SequenceModelAsset(
+            modelName = "patchtst128_dense128_dropout10",
+            modelType = "patchtst_lite",
+            assetDir = "mydream_sequence_patchtst128_dense128_dropout10",
         ),
     )
 
